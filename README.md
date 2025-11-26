@@ -22,14 +22,14 @@ Yapay zekâ destekli, kişiselleştirilmiş sınav ve öğrenme platformu.
 - React  
 - Vite  
 - Tailwind CSS  
-- Axios  
+ 
 
 ### Backend  
 - Node.js  
 - Express.js  
 - MySQL  
 - JWT Authentication  
-- Gemini API (Soru üretimi + değerlendirme)
+- Gemini API (değerlendirme)
 
 ### Dağıtım  
 - Frontend: Vercel  
