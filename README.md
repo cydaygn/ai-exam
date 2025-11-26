@@ -44,7 +44,9 @@ Bu proje, bir sınav / değerlendirme uygulaması için arka uç (backend) ve ö
    cd ai-exam
 
 cd backend
+
 npm install
+
 npm run dev 
 
 
