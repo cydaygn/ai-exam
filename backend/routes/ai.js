@@ -4,78 +4,81 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = express.Router();
 
-/* ---------------- GEMINI CLIENT ---------------- */
+/* ---------------- GEMINI ---------------- */
 
-if (!process.env.GEMINI_API_KEY) {
-  console.warn("UYARI: GEMINI_API_KEY .env dosyasında tanımlı değil.");
-}
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_KEY) console.warn("UYARI: GEMINI_API_KEY .env dosyasında tanımlı değil.");
 
-// ✅ tek genAI (dosya seviyesinde)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
-// ✅ model cache + adaylar
-let CACHED_MODEL_NAME = null;
-
-const MODEL_CANDIDATES = [
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-pro-latest",
-  "gemini-1.0-pro",
-  "gemini-pro",
-];
+let CACHED_MODEL = null;
+const MODEL_CANDIDATES = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
 
 async function generateWithModel(modelName, prompt) {
   const model = genAI.getGenerativeModel({ model: modelName });
   const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return response.text();
+  return result.response.text();
 }
 
 async function askGemini(prompt) {
-  try {
-    if (!process.env.GEMINI_API_KEY) {
-      return "GEMINI_API_KEY tanımlı değil.";
+  if (!GEMINI_KEY) return "GEMINI_API_KEY yok. Backend .env içine ekle.";
+
+  if (CACHED_MODEL) {
+    try {
+      const t = await generateWithModel(CACHED_MODEL, prompt);
+      if (t) return t;
+    } catch {
+      CACHED_MODEL = null;
     }
-
-    // önce cache'li modeli dene
-    if (CACHED_MODEL_NAME) {
-      try {
-        const t = await generateWithModel(CACHED_MODEL_NAME, prompt);
-        if (t) return t;
-      } catch {
-        CACHED_MODEL_NAME = null;
-      }
-    }
-
-    let lastErr = null;
-
-    for (const modelName of MODEL_CANDIDATES) {
-      try {
-        const text = await generateWithModel(modelName, prompt);
-        if (text) {
-          CACHED_MODEL_NAME = modelName;
-          return text;
-        }
-      } catch (err) {
-        lastErr = err;
-        const status = err?.status || err?.response?.status;
-        console.error(`Gemini model başarısız: ${modelName}`, status || "", err?.message || err);
-        continue;
-      }
-    }
-
-    console.error("Gemini API HATASI (tüm modeller):", lastErr);
-    return "AI servisine bağlanırken hata oluştu (uygun model bulunamadı).";
-  } catch (err) {
-    console.error("Gemini API HATASI:", err);
-    return "AI servisine bağlanırken hata oluştu.";
   }
+
+  let lastErr = null;
+  for (const m of MODEL_CANDIDATES) {
+    try {
+      const t = await generateWithModel(m, prompt);
+      if (t) {
+        CACHED_MODEL = m;
+        return t;
+      }
+    } catch (e) {
+      lastErr = e;
+      console.error("Gemini model başarısız:", m, e?.status || "", e?.message || e);
+    }
+  }
+
+  console.error("Gemini son hata:", lastErr);
+  return "Gemini çalışmıyor. (Muhtemelen API key yanlış/izinsiz veya model erişimi yok.)";
 }
 
-/* ----------------------- INTENT SYSTEM ----------------------- */
+/* ---------------- DEBUG: LIST MODELS ---------------- */
+
+router.get("/models", async (req, res) => {
+  try {
+    if (!GEMINI_KEY) return res.status(400).json({ success: false, error: "GEMINI_API_KEY yok" });
+
+    if (typeof genAI.listModels !== "function") {
+      return res.status(500).json({
+        success: false,
+        error: "listModels yok. Paketi güncelle: npm i @google/generative-ai@latest",
+      });
+    }
+
+    const out = await genAI.listModels();
+    const models = (out?.models || []).map((m) => ({
+      name: m?.name,
+      supportedGenerationMethods: m?.supportedGenerationMethods,
+    }));
+    return res.json({ success: true, models });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      status: err?.status,
+      error: err?.message || String(err),
+    });
+  }
+});
+
+/* ---------------- INTENTS ---------------- */
 
 const INTENTS = {
   greeting: ["merhaba", "selam", "hello", "hi", "hey", "naber"],
@@ -93,7 +96,6 @@ function fuzzy(a, b) {
   b = b.toLowerCase();
   let diff = Math.abs(a.length - b.length);
   let len = Math.min(a.length, b.length);
-
   for (let i = 0; i < len; i++) {
     if (a[i] !== b[i]) diff++;
     if (diff > 2) return false;
@@ -103,7 +105,6 @@ function fuzzy(a, b) {
 
 function detectIntent(text) {
   text = (text || "").toLowerCase();
-
   for (const intent in INTENTS) {
     for (const kw of INTENTS[intent]) {
       if (text.includes(kw)) return intent;
@@ -113,7 +114,7 @@ function detectIntent(text) {
   return "chat";
 }
 
-/* -------------------- HELPERS -------------------- */
+/* ---------------- HELPERS ---------------- */
 
 function normalizeUserId(value) {
   if (value === undefined || value === null) return null;
@@ -131,7 +132,7 @@ function getGuestSuggestions() {
   ];
 }
 
-/* -------------------- STUDENT CONTEXT -------------------- */
+/* ---------------- DB CONTEXT ---------------- */
 
 function getStudentContext(userId) {
   return new Promise((resolve, reject) => {
@@ -159,141 +160,90 @@ function getStudentContext(userId) {
 
       db.query(q2, [userId], (err2, tests) => {
         if (err2) return reject(err2);
-
-        const lastTest = tests[0] || null;
-
         resolve({
           name: user.name,
           total: user.total_tests,
           avg: user.avg_score,
           tests,
-          lastTest,
+          lastTest: tests[0] || null,
         });
       });
     });
   });
 }
 
-/* -------------------- GENERATE SUGGESTIONS -------------------- */
-
 function generateSuggestions(ctx) {
   const suggestions = [];
-
   suggestions.push({ id: "analyze_last", text: "📊 Son sınavımı analiz et", prompt: "Son sınavımı detaylı analiz et ve öneriler sun" });
   suggestions.push({ id: "weak_topics", text: "📚 Hangi konuya çalışmalıyım?", prompt: "Zayıf olduğum konuları belirle ve öncelik sırası ver" });
 
   if (ctx.total > 0) {
     suggestions.push({ id: "study_plan", text: "📝 1 haftalık çalışma planı", prompt: "Bana 1 haftalık çalışma planı hazırla (gün gün, konu konu)." });
   }
-
   if (ctx.avg < 70) {
     suggestions.push({ id: "improvement", text: "📈 Performansımı artır", prompt: "Sınav performansımı artırmak için net bir plan ver." });
   }
-
-  if (ctx.total >= 3) {
-    suggestions.push({ id: "compare", text: "📉 Son 3 sınavımı karşılaştır", prompt: "Son 3 sınavımdaki gelişimimi analiz et" });
-  }
-
   suggestions.push({ id: "motivation", text: "💪 Motivasyon ve taktikler", prompt: "Sınav motivasyonu ve etkili çalışma taktikleri öner" });
 
   return suggestions.length >= 4 ? suggestions : getGuestSuggestions();
 }
 
-/* ----------------------- GET SUGGESTIONS ENDPOINT ----------------------- */
+/* ---------------- ENDPOINTS ---------------- */
 
 router.get("/suggestions", async (req, res) => {
   try {
     const userId = normalizeUserId(req.query.userId);
-
-    if (!userId) {
-      return res.json({ success: true, suggestions: getGuestSuggestions() });
-    }
+    if (!userId) return res.json({ success: true, suggestions: getGuestSuggestions() });
 
     const ctx = await getStudentContext(userId);
-    const suggestions = generateSuggestions(ctx);
-
-    res.json({ success: true, suggestions });
+    return res.json({ success: true, suggestions: generateSuggestions(ctx) });
   } catch (err) {
-    console.error("ÖNERİ HATASI:", err);
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
-
-/* ----------------------- AI CHAT ----------------------- */
 
 router.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
     const userId = normalizeUserId(req.body.userId);
 
-    if (!message?.trim()) {
-      return res.status(400).json({ error: "Mesaj boş olamaz" });
-    }
+    if (!message?.trim()) return res.status(400).json({ error: "Mesaj boş olamaz" });
 
     const intent = detectIntent(message);
-    let contextText = "";
-    let ctx = null;
 
+    let ctx = null;
+    let contextText = "";
     if (userId) {
       try {
         ctx = await getStudentContext(userId);
         contextText = `
-Öğrenci Bilgileri:
+Öğrenci:
 - İsim: ${ctx.name}
 - Toplam Test: ${ctx.total}
-- Ortalama Puan: %${ctx.avg}
+- Ortalama: %${ctx.avg}
 - Son Testler: ${ctx.tests.map((t) => `${t.exam_name} (%${t.score})`).join(", ")}
 `;
-      } catch (e) {
-        console.error("Context Error:", e);
-      }
+      } catch {}
     }
 
     if (intent === "greeting") {
       const userName = ctx?.name || "Öğrenci";
-      let greetingMsg = `Merhaba ${userName}! Sınav hazırlık asistanınızım. `;
-
-      if (ctx && ctx.total > 0) {
-        greetingMsg += `Şu ana kadar ${ctx.total} test çözmüşsünüz, ortalamanız %${ctx.avg}. `;
-      }
-
-      greetingMsg += `Aşağıdan bir baloncuk seçerek devam edin.`;
-
       const suggestions = ctx ? generateSuggestions(ctx) : getGuestSuggestions();
-
       return res.json({
         success: true,
-        message: greetingMsg,
+        message: `Merhaba ${userName}! Aşağıdan bir baloncuk seçerek devam edin.`,
         suggestions: suggestions.slice(0, 6),
       });
     }
 
-    let systemPrompt = "";
-    switch (intent) {
-      case "performance":
-        systemPrompt = "Kullanıcının sınav performansını analiz et, güçlü ve zayıf yönlerini belirt.";
-        break;
-      case "analysis":
-        systemPrompt = "Detaylı sınav analizi yap, somut öneriler sun.";
-        break;
-      case "study":
-        systemPrompt = "Günlük çalışma planı oluştur (gün gün, konu konu).";
-        break;
-      case "solve":
-        systemPrompt = "Soruyu adım adım çöz, her adımı açıkla.";
-        break;
-      case "explain":
-        systemPrompt = "Konuyu basit örneklerle anlat.";
-        break;
-      case "weak_topics":
-        systemPrompt = "Eksik konuları belirle ve öncelik sırası ver.";
-        break;
-      case "motivation":
-        systemPrompt = "Motivasyon artırıcı ve pratik tavsiyeler ver.";
-        break;
-      default:
-        systemPrompt = "Net, kısa ve kullanıcıyı baloncuklarla yönlendiren bir tonla yanıt ver.";
-    }
+    const systemPrompt =
+      intent === "analysis"
+        ? "Detaylı sınav analizi yap, somut öneriler sun."
+        : intent === "study"
+        ? "Gün gün, konu konu çalışma planı ver."
+        : intent === "weak_topics"
+        ? "Eksik konuları belirle ve öncelik sırası ver."
+        : "Net, kısa ve yönlendirici yanıt ver.";
 
     const fullPrompt = `
 ${systemPrompt}
@@ -303,118 +253,16 @@ ${contextText}
 Kullanıcı Mesajı:
 "${message}"
 
-Yanıt kuralları:
-- Net ve anlaşılır ol
-- Gereksiz tekrar yapma
-- Maddeler kullan
-- Kullanıcıya yazı yazdırmaya çalışma; yönlendirme baloncuklarla yapılacak
+Kurallar:
+- Kullanıcıya metin yazdırma; yönlendirme baloncuklarla yapılacak.
+- Kısa, maddeli, uygulanabilir öneriler ver.
 `;
 
     const answer = await askGemini(fullPrompt);
     const suggestions = ctx ? generateSuggestions(ctx) : getGuestSuggestions();
-
-    res.json({
-      success: true,
-      message: answer,
-      suggestions: suggestions.slice(0, 6),
-    });
+    return res.json({ success: true, message: answer, suggestions: suggestions.slice(0, 6) });
   } catch (err) {
-    console.error("AI HATASI:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/* ------------------- EXAM ANALYSIS ------------------- */
-
-router.post("/analyze-exam", async (req, res) => {
-  try {
-    const { examName, questions, answers } = req.body;
-
-    const wrong = [];
-    const subjects = {};
-
-    questions.forEach((q, i) => {
-      const subj = q.subject || "Genel";
-      if (!subjects[subj]) subjects[subj] = { correct: 0, wrong: 0 };
-
-      if (answers[i] !== q.answer) {
-        wrong.push({ number: i + 1, question: q.question, subject: subj });
-        subjects[subj].wrong++;
-      } else {
-        subjects[subj].correct++;
-      }
-    });
-
-    const analysisPrompt = `
-Sınav Detaylı Analizi:
-
-Sınav: ${examName}
-Toplam Soru: ${questions.length}
-Doğru: ${questions.length - wrong.length}
-Yanlış: ${wrong.length}
-Net: ${questions.length - wrong.length - wrong.length / 4}
-
-Konu Bazlı Performans:
-${Object.entries(subjects)
-  .map(([subj, stats]) => `${subj}: ${stats.correct} doğru, ${stats.wrong} yanlış`)
-  .join("\n")}
-
-Yanlış sorular: ${wrong.map((w) => `${w.number}. ${w.subject}`).join(", ")}
-
-Kullanıcıya:
-1. En zayıf konuları
-2. Nasıl çalışmalı
-3. Hangi tür soru çözmeli
-4. Kısa motivasyon
-
-Net ve öz yaz. Kullanıcıya metin yazdırma; öneriler baloncukla ilerleyecek.
-`;
-
-    const text = await askGemini(analysisPrompt);
-
-    res.json({
-      success: true,
-      analysis: text,
-      score: Math.round(((questions.length - wrong.length) / questions.length) * 100),
-      subjects,
-    });
-  } catch (err) {
-    console.error("ANALIZ HATASI:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/* ----------------- WRONG ANSWER EXPLANATION ----------------- */
-
-router.post("/explain-question", async (req, res) => {
-  try {
-    const { question, options, userAnswer, correctAnswer } = req.body;
-
-    const prompt = `
-Soru Açıklaması:
-
-Soru: ${question}
-Seçenekler:
-${options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n")}
-
-Öğrencinin Cevabı: ${String.fromCharCode(65 + userAnswer)}. ${options[userAnswer]}
-Doğru Cevap: ${String.fromCharCode(65 + correctAnswer)}. ${options[correctAnswer]}
-
-Format:
-1) Soru ne istiyor?
-2) Doğru neden doğru?
-3) Yanlış neden yanlış?
-4) Hangi konu tekrar edilmeli?
-
-Kısa ve öğretici yaz.
-`;
-
-    const text = await askGemini(prompt);
-
-    res.json({ success: true, explanation: text });
-  } catch (err) {
-    console.error("AÇIKLAMA HATASI:", err);
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
