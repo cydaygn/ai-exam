@@ -1,3 +1,4 @@
+// backend/routes/exams.js
 import express from "express";
 import db from "../db.js";
 
@@ -7,10 +8,13 @@ const router = express.Router();
    TÜM SINAVLAR
 --------------------------------------------*/
 router.get("/", (req, res) => {
-  db.query("SELECT id, title, exam_type, created_at FROM exams", (err, rows) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json(rows);
-  });
+  db.query(
+    "SELECT id, title, exam_type, created_at FROM exams",
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err });
+      res.json(rows);
+    }
+  );
 });
 
 /* -------------------------------------------
@@ -37,8 +41,9 @@ router.get("/:id", (req, res) => {
 
   db.query("SELECT * FROM exams WHERE id = ?", [examId], (err1, examRows) => {
     if (err1) return res.status(500).json({ error: err1 });
-    if (examRows.length === 0)
+    if (examRows.length === 0) {
       return res.status(404).json({ error: "Sınav bulunamadı" });
+    }
 
     const exam = examRows[0];
 
@@ -52,7 +57,7 @@ router.get("/:id", (req, res) => {
           id: exam.id,
           title: exam.title,
           exam_type: exam.exam_type,
-          questions: questions.map((q) => ({
+          questions: questions.map(q => ({
             id: q.id,
             question: q.question,
             options: [

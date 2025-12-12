@@ -1,3 +1,4 @@
+// backend/routes/user.js
 import express from "express";
 import db from "../db.js";
 
@@ -40,7 +41,7 @@ router.get("/:id", (req, res) => {
 
           res.json({
             ...summary,
-            weekly_scores: weekly.map((w) => w.score).reverse()
+            weekly_scores: weekly.map(w => w.score).reverse(),
           });
         }
       );
@@ -49,20 +50,81 @@ router.get("/:id", (req, res) => {
 });
 
 /* -------------------------------------------
+   PROFİL GÜNCELLEME 
+--------------------------------------------*/
+router.put("/:id", (req, res) => {
+  const userId = req.params.id;
+  const { name } = req.body;
+
+  if (!name) {
+    return res
+      .status(400)
+      .json({ success: false, error: "İsim boş olamaz." });
+  }
+
+  const updateQuery = `
+    UPDATE users
+    SET name = ?
+    WHERE id = ?
+  `;
+
+  db.query(updateQuery, [name, userId], (err) => {
+    if (err) {
+      console.error("Profil güncelleme hatası:", err);
+      return res
+        .status(500)
+        .json({ success: false, error: "Profil güncellenemedi." });
+    }
+
+    // Güncellenmiş profil verisini geri dönelim
+    const getQuery = `
+      SELECT id, name, email, role
+      FROM users
+      WHERE id = ?
+    `;
+
+    db.query(getQuery, [userId], (err2, rows) => {
+      if (err2 || rows.length === 0) {
+        return res.json({
+          success: true,
+          message: "İsim güncellendi.",
+        });
+      }
+
+      res.json({
+        success: true,
+        profile: rows[0],
+      });
+    });
+  });
+});
+
+/* -------------------------------------------
    TEST GEÇMİŞİ
 --------------------------------------------*/
 router.get("/tests/:id", (req, res) => {
   const userId = req.params.id;
 
-  db.query(
-    "SELECT * FROM user_tests WHERE user_id = ? ORDER BY created_at DESC",
-    [userId],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err });
-      res.json(rows);
-    }
-  );
+  const query = `
+    SELECT ut.*
+    FROM user_tests ut
+    INNER JOIN (
+      SELECT exam_name, MAX(id) AS last_id
+      FROM user_tests
+      WHERE user_id = ?
+      GROUP BY exam_name
+    ) t ON t.last_id = ut.id
+    WHERE ut.user_id = ?
+    ORDER BY ut.created_at DESC
+    LIMIT 10
+  `;
+
+  db.query(query, [userId, userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json(rows);
+  });
 });
+
 
 /* -------------------------------------------
    TEST KAYDET 
@@ -73,7 +135,7 @@ router.post("/save-test", (req, res) => {
   db.query(
     "INSERT INTO user_tests (user_id, exam_name, score, correct, total) VALUES (?, ?, ?, ?, ?)",
     [userId, examName, score, correct, total],
-    (err) => {
+    err => {
       if (err) return res.status(500).json({ error: err });
       res.json({ success: true });
     }
@@ -122,7 +184,7 @@ router.get("/performance/:id", (req, res) => {
           total_tests: summary[0].total_tests,
           average_score: Math.round(summary[0].avg_score || 0),
           weekly_scores: weekly,
-          topic_performance: topics
+          topic_performance: topics,
         });
       });
     });

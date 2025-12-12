@@ -120,7 +120,7 @@ function Login() {
             text-lg font-semibold
           "
         >
-          ← ANA SAYFAYA DÖN
+          ← ANA SAYFA
         </button>
 
         {/* LOGIN CARD */}

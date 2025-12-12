@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import examRoutes from "./routes/exams.js";
 import adminRoutes from "./routes/admin.js";
+import aiRoutes from "./routes/ai.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend çalışıyor");

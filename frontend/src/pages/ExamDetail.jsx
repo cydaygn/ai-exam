@@ -16,21 +16,20 @@ function ExamDetail() {
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/exams/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         if (!data || !data.questions) {
           console.error("Veri gelmedi:", data);
           return;
         }
 
-        setExamTitle(data.title);           // ← DOĞRU ANAHTAR
-        setQuestions(data.questions);       // ← DOĞRU
+        setExamTitle(data.title);
+        setQuestions(data.questions);
         setAnswers(new Array(data.questions.length).fill(null));
       })
-      .catch((err) => console.error("Fetch error:", err));
+      .catch(err => console.error("Fetch error:", err));
   }, [id]);
 
-  // *** VERİ GELMEDEN MAP YAPILMASINI ENGELE ***
   if (!questions) return <p>Yükleniyor...</p>;
   if (questions.length === 0) return <p>Bu sınavda soru yok.</p>;
 
@@ -62,7 +61,7 @@ function ExamDetail() {
   const finishExam = () => {
     const updated = saveAnswer();
     navigate(`/student/exam/${id}/result`, {
-      state: { answers: updated, questions, examTitle }
+      state: { answers: updated, questions, examTitle },
     });
   };
 
@@ -108,7 +107,6 @@ function ExamDetail() {
           </button>
 
           <div className="flex gap-3">
-
             {current < total - 1 && (
               <button
                 onClick={handleNext}
