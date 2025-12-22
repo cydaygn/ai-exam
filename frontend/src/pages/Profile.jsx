@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
@@ -10,11 +10,19 @@ import {
   Edit3,
   X,
   Save,
+  Sparkles,
 } from "lucide-react";
-
+import { API_URL, API_BASE } from '../api';
 function Profile() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  }, []);
 
   const [profileData, setProfileData] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -26,269 +34,295 @@ function Profile() {
 
   useEffect(() => {
     if (!user) navigate("/login");
-  }, []);
+  }, [navigate, user]);
 
   useEffect(() => {
     if (!user) return;
-
-    fetch(`http://localhost:5000/api/user/${user.id}`)
-      .then(res => res.json())
-      .then(data => {
+fetch(`${API_URL}/user/${user.id}`)
+      .then((res) => res.json())
+      .then((data) => {
         setProfileData(data);
-        setForm({
-          name: data.name,
-        });
+        setForm({ name: data.name || "" });
       })
-      .catch(err => console.error("Profil fetch hatası:", err));
+      .catch((err) => console.error("Profil fetch hatası:", err));
 
-    fetch(`http://localhost:5000/api/user/tests/${user.id}`)
-      .then(res => res.json())
-      .then(data => setActivities(data))
-      .catch(err => console.error("Tests fetch hatası:", err));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+   fetch(`${API_URL}/user/tests/${user.id}`)
+      .then((res) => res.json())
+      .then((data) => setActivities(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Tests fetch hatası:", err));
+  }, [user]);
 
-  const handleChange = e => {
-    setForm(prev => ({
+  const handleChange = (e) => {
+    setForm((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
   };
-
   const handleSave = async () => {
     if (!profileData) return;
     setSaving(true);
     setError("");
-
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/user/${profileData.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: form.name, // sadece name
-          }),
-        }
-      );
-
+    const res = await fetch(`${API_URL}/user/${profileData.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: form.name }),
+  });
       const data = await res.json();
-
       if (!res.ok || data.success === false) {
         throw new Error(data.error || "Profil güncellenemedi.");
       }
-
       if (data.profile) {
-        setProfileData(prev => ({
-          ...prev,
-          ...data.profile,
-        }));
+        setProfileData((prev) => ({ ...prev, ...data.profile }));
       } else {
-        setProfileData(prev => ({
-          ...prev,
-          name: form.name,
-        }));
+        setProfileData((prev) => ({ ...prev, name: form.name }));
       }
-
-      const stored = JSON.parse(localStorage.getItem("user") || "null");
+      const stored = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("user") || "null");
+        } catch {
+          return null;
+        }
+      })();
       if (stored) {
         stored.name = form.name;
         localStorage.setItem("user", JSON.stringify(stored));
       }
-
       setEditMode(false);
     } catch (err) {
       console.error("Profil güncelleme hatası:", err);
-      setError(err.message || "Profil güncellenemedi.");
+      setError(err?.message || "Profil güncellenemedi.");
     } finally {
       setSaving(false);
     }
   };
+  if (!profileData) {
+    return (
+      <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
+        {/* Arka plan soft glow + hafif grid */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
+          <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-220px] left-1/2 -translate-x-1/2 w-[720px] h-[720px] bg-sky-200/35 rounded-full blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
+        </div>
+        <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-14 pb-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-900/10 bg-white/60 px-4 py-2 text-sm text-slate-700 mb-6">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              Profil verileri hazırlanıyor
+            </div>
+            <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-10 shadow-sm">
+              <p className="text-center text-slate-700">Yükleniyor...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const displayName = (profileData?.name || "")
+  .trim()
+  .toLocaleLowerCase("tr-TR")
+  .replace(/\s+/g, " ")
+  .split(" ")
+  .filter(Boolean)
+  .map((w) => w.charAt(0).toLocaleUpperCase("tr-TR") + w.slice(1))
+  .join(" ");
 
-  if (!profileData)
-    return <p className="text-center mt-10">Yükleniyor...</p>;
-
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    displayName  || "")}&background=10b981&color=fff&size=150`;
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold mb-2">Profilim</h1>
-
-      {/* Profil kartı + düzenle butonu */}
-      <div className="bg-white shadow-xl rounded-2xl p-8 mb-4 flex flex-col md:flex-row md:items-center gap-8 border">
-        <img
-          src={`https://ui-avatars.com/api/?name=${profileData.name}&background=0D8ABC&color=fff&size=150`}
-          className="w-32 h-32 rounded-full shadow"
-        />
-
-        <div className="flex-1 space-y-4">
-          <div className="flex items-start md:items-center justify-between gap-3 flex-col md:flex-row">
-            <div className="flex items-center gap-3">
-              <User className="text-gray-600" />
-              {!editMode ? (
-                <p className="text-xl font-semibold">
-                  {profileData.name}
-                </p>
-              ) : (
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className="border rounded-lg px-3 py-2 text-lg w-full"
-                  placeholder="Ad Soyad"
-                />
-              )}
-            </div>
-
-            {/* Düzenle / Kaydet butonları */}
-            <div className="flex items-center gap-2">
-              {!editMode ? (
-                <button
-                  onClick={() => {
-                    setForm({
-                      name: profileData.name,
-                    });
-                    setEditMode(true);
-                  }}
-                  className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
-                >
-                  <Edit3 size={16} />
-                  <span>Düzenle</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setEditMode(false)}
-                    disabled={saving}
-                    className="flex items-center gap-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm"
-                  >
-                    <X size={16} />
-                    <span>İptal</span>
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-                  >
-                    <Save size={16} />
-                    <span>{saving ? "Kaydediliyor..." : "Kaydet"}</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Mail className="text-gray-600" />
-            <p className="text-gray-600 text-lg">
-              {profileData.email}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Settings className="text-gray-600" />
-            <p className="text-gray-600 text-lg">
-              {profileData.role}
-            </p>
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 mt-1">{error}</p>
-          )}
-        </div>
+    <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
+      {/* Arka plan soft glow + hafif grid */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
+        <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-220px] left-1/2 -translate-x-1/2 w-[720px] h-[720px] bg-sky-200/35 rounded-full blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
-
-      {/* En son test tarihi */}
-      <div className="bg-white shadow rounded-xl p-5 border">
-        <h2 className="text-xl font-bold mb-2">En Son Test Tarihi</h2>
-        <p className="text-lg text-gray-700 font-semibold">
-          {profileData.last_test_date
-            ? new Date(
-                profileData.last_test_date
-              ).toLocaleDateString("tr-TR")
-            : "Henüz test çözülmedi"}
-        </p>
-      </div>
-
-      {/* İstatistikler */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 bg-blue-600 text-white rounded-2xl shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Toplam Test</h3>
-            <BarChart2 size={32} />
-          </div>
-          <p className="text-5xl font-bold">
-            {profileData.total_tests}
-          </p>
-        </div>
-
-        <div className="p-6 bg-purple-600 text-white rounded-2xl shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Genel Başarı</h3>
-            <CheckCircle size={32} />
-          </div>
-          <p className="text-5xl font-bold">
-            %{profileData.average_score}
-          </p>
-        </div>
-
-        <div className="p-6 bg-green-600 text-white rounded-2xl shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Son Test</h3>
-            <Clock size={32} />
-          </div>
-          <p className="text-2xl font-bold">
-            {profileData.last_test_name || "-"}
-          </p>
-        </div>
-      </div>
-
-      {/* Son Aktiviteler - STİLİ DÜZELTİLMİŞ HAL */}
-      <div className="bg-white border rounded-2xl shadow p-6 mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Son Aktiviteler</h2>
-          {activities.length > 0 && (
-            <span className="text-xs text-gray-500">
-              Son {activities.length} kayıt
+      <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-10 pb-14">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-3">
+            <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+              Profilim
             </span>
-          )}
-        </div>
-
-        {activities.length === 0 ? (
-          <p className="text-gray-500 text-sm">
-            Henüz test çözülmedi.
+          </h1>
+          <p className="text-slate-700 max-w-2xl mb-10">
+            Adını güncelle, son testlerini ve istatistiklerini tek yerde gör.
           </p>
-        ) : (
-          <ul className="space-y-3 max-h-96 overflow-y-auto">
-            {activities.map((a, i) => (
-              <li
-                key={i}
-                className="p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3 transition"
-              >
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">
-                    {a.exam_name}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(a.created_at).toLocaleString("tr-TR")}
-                  </p>
-                </div>
+          {/* Profil kartı */}
+          <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-7 md:p-8 shadow-sm mb-8">
+            <div className="flex flex-col md:flex-row md:items-center gap-7">
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-28 h-28 md:w-32 md:h-32 rounded-full shadow-sm border border-white/60"
+              />
+              <div className="flex-1">
+                <div className="flex items-start md:items-center justify-between gap-4 flex-col md:flex-row">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">                   
+                      {!editMode ? (
+                        <p className="text-xl md:text-2xl font-extrabold break-words">
+                          {displayName}
+                        </p>
+                      ) : (
+                        <input
+                          type="text"
+                          name="name"
+                          value={form.name}
+                          onChange={handleChange}
+                          className="w-full md:w-[360px] rounded-xl border border-slate-900/10 bg-white/70 px-4 py-2.5 text-lg outline-none focus:ring-2 focus:ring-emerald-300"
+                          placeholder="Ad Soyad"
+                        />
+                      )}
+                    </div>
 
-                <div className="flex items-center gap-3 md:min-w-[120px] md:justify-end">
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs uppercase tracking-wide text-gray-400">
-                      Başarı
-                    </span>
-                    <span className="text-xl font-bold text-blue-700">
-                      %{a.score}
-                    </span>
+                    <div className="mt-5 space-y-3">
+                      <InfoRow
+                        icon={<Mail className="w-5 h-5 text-slate-600" />}
+                        text={profileData.email}
+                      />
+                      <InfoRow
+                        icon={<Settings className="w-5 h-5 text-slate-600" />}
+                        text={profileData.role}
+                      />
+                    </div>
+
+                    {error && (
+                      <p className="mt-3 text-sm text-red-600">{error}</p>
+                    )}
+                  </div>
+
+                  {/* Butonlar */}
+                  <div className="flex items-center gap-2">
+                    {!editMode ? (
+                      <button
+                        onClick={() => {
+                          setForm({ name: profileData.name || "" });
+                          setEditMode(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-900/10 bg-white/70 hover:bg-white transition text-sm font-semibold"
+                      >
+                        <Edit3 size={16} />
+                        Düzenle
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setEditMode(false)}
+                          disabled={saving}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-900/10 bg-white/70 hover:bg-white transition text-sm font-semibold"
+                        >
+                          <X size={16} />
+                          İptal
+                        </button>
+
+                        <button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-bold text-sm
+                                     bg-gradient-to-r from-emerald-500 to-cyan-500
+                                     shadow-[0_10px_30px_rgba(6,182,212,0.25)]
+                                     hover:brightness-105 transition disabled:opacity-60"
+                        >
+                          <Save size={16} />
+                          {saving ? "Kaydediliyor..." : "Kaydet"}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
+              </div>
+            </div>
+          </div>
+
+       
+
+
+          {/* Son Aktiviteler */}
+          <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl shadow-sm p-6 md:p-7 mb-10">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl md:text-2xl font-extrabold">
+                Son Aktiviteler
+              </h2>
+              {activities.length > 0 && (
+                <span className="text-xs text-slate-600 bg-white/60 border border-slate-900/10 rounded-full px-3 py-1">
+                  Son {activities.length} kayıt
+                </span>
+              )}
+            </div>
+
+            {activities.length === 0 ? (
+              <p className="text-slate-700 text-sm">Henüz test çözülmedi.</p>
+            ) : (
+              <ul className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {activities.map((a, i) => (
+                  <li
+                    key={i}
+                    className="p-4 rounded-2xl border border-slate-900/10 bg-white/60 hover:bg-white transition
+                               flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900 break-words">
+                        {a.exam_name}
+                      </p>
+    <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+  <span>{new Date(a.created_at).toLocaleString("tr-TR")}</span>
+
+  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+    {a.correct ?? 0}/{a.total ?? 0}
+  </span>
+</div>
+
+                    </div>
+
+                    <div className="flex items-center gap-3 md:min-w-[140px] md:justify-end">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                          Başarı
+                        </div>
+                        <div className="text-2xl font-extrabold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                          %{a.score}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ icon, text }) {
+  return (
+    <div className="flex items-center gap-3 text-slate-700">
+      <span className="shrink-0">{icon}</span>
+      <p className="text-base md:text-lg break-words">{text}</p>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, accent, small }) {
+  return (
+    <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <h3 className="text-slate-700 text-sm font-semibold">{title}</h3>
+          <p className={`${small ? "text-2xl" : "text-4xl md:text-5xl"} font-extrabold mt-2`}>
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${accent} flex items-center justify-center shadow-sm`}
+        >
+          <div className="text-white">{icon}</div>
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { Bot, User, Sparkles, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bot, User, Sparkles, RefreshCw, AlertTriangle } from "lucide-react";
 import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+import { API_URL } from '../api';
 
 function AiAssistant() {
   const [messages, setMessages] = useState([]);
@@ -10,85 +9,111 @@ function AiAssistant() {
   const [error, setError] = useState(null);
   const [currentSuggestions, setCurrentSuggestions] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const chatEndRef = useRef(null);
+  const [cooldown, setCooldown] = useState(0);
 
+  const chatScrollRef = useRef(null);
+
+  const getChatKey = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return `ai_chat_history_${user?.id || "guest"}`;
+  };
+
+  const getUserId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      return user?.id ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Auto-scroll
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, loading]);
 
+  // Cooldown timer
   useEffect(() => {
-    if (!isInitialized) initializeChat();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInitialized]);
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
+  // Save to localStorage
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem("ai_chat_history", JSON.stringify(messages));
+      localStorage.setItem(getChatKey(), JSON.stringify(messages));
     }
   }, [messages]);
 
-  const getUserId = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    return user?.id ?? null;
-  };
+  // Initialize chat
+  useEffect(() => {
+    if (!isInitialized) initializeChat();
+  }, [isInitialized]);
 
-  const loadSuggestions = async () => {
+  const loadInitialSuggestions = async () => {
     try {
       const userId = getUserId();
-      const response = await axios.get(`${API_BASE}/api/ai/suggestions`, {
-        params: { userId },
+      const response = await axios.get(`${API_URL}/ai/suggestions`, {
+        params: { userId, context: "initial" },
       });
-
-      if (response.data.success) {
+      if (response.data?.success) {
         setCurrentSuggestions(response.data.suggestions || []);
       }
     } catch (err) {
       console.error("Öneri yükleme hatası:", err);
+      // Fallback öneriler
+      setCurrentSuggestions([
+        { id: "1", text: "📊 Son sınavımı analiz et", prompt: "Son sınavımı detaylı analiz et" },
+        { id: "2", text: "📚 Hangi konuya çalışmalıyım?", prompt: "Zayıf olduğum konuları belirle" },
+        { id: "3", text: "📝 Çalışma planı oluştur", prompt: "Bana detaylı çalışma planı hazırla" },
+      ]);
     }
   };
 
   const initializeChat = async () => {
-    const saved = localStorage.getItem("ai_chat_history");
+    const saved = localStorage.getItem(getChatKey());
+
     if (saved) {
-      const history = JSON.parse(saved);
-      setMessages(history);
+      try {
+        const history = JSON.parse(saved);
+        setMessages(history);
 
-      const lastAiMessage = [...history].reverse().find((m) => m.sender === "ai");
-      if (lastAiMessage?.suggestions?.length) {
-        setCurrentSuggestions(lastAiMessage.suggestions);
-      } else {
-        await loadSuggestions();
+        // Son AI mesajındaki önerileri yükle
+        const lastAi = [...history].reverse().find((m) => m.sender === "ai");
+        if (lastAi?.suggestions?.length) {
+          setCurrentSuggestions(lastAi.suggestions);
+        } else {
+          await loadInitialSuggestions();
+        }
+
+        setIsInitialized(true);
+        return;
+      } catch (err) {
+        console.error("Geçmiş yükleme hatası:", err);
+        localStorage.removeItem(getChatKey());
       }
-
-      setIsInitialized(true);
-      return;
     }
 
+    // Yeni sohbet
     setLoading(true);
     try {
-      const userId = getUserId();
-
-      // ilk mesaj: backend greeting
-      const response = await axios.post(`${API_BASE}/api/ai/chat`, {
-        message: "merhaba",
-        userId,
-      });
-
-      if (response.data.success) {
-        const welcomeMessage = {
-          sender: "ai",
-          text: response.data.message,
-          suggestions: response.data.suggestions || [],
-        };
-        setMessages([welcomeMessage]);
-        setCurrentSuggestions(response.data.suggestions || []);
-      } else {
-        await loadSuggestions();
-      }
+      await loadInitialSuggestions();
+      
+      const welcome = {
+        sender: "ai",
+        text: "Merhaba! 👋\n\nSınav hazırlığında sana yardımcı olmak için buradayım. Aşağıdaki baloncuklardan birini seçerek başlayabilirsin:",
+        suggestions: [],
+      };
+      setMessages([welcome]);
     } catch (err) {
       console.error("Başlatma hatası:", err);
       setError("Bağlantı kurulamadı. Sayfayı yenileyin.");
-      await loadSuggestions();
     } finally {
       setLoading(false);
       setIsInitialized(true);
@@ -96,192 +121,308 @@ function AiAssistant() {
   };
 
   const handleSuggestionClick = async (suggestion) => {
-    if (loading) return;
+    if (loading || cooldown > 0) return;
 
     setError(null);
     setLoading(true);
 
-    // kullanıcı baloncuğu
+    // Kullanıcı mesajını ekle
     const userMessage = { sender: "user", text: suggestion.text };
     setMessages((prev) => [...prev, userMessage]);
 
     try {
       const userId = getUserId();
 
-      const response = await axios.post(`${API_BASE}/api/ai/chat`, {
+      // Konuşma geçmişini gönder (AI için context)
+      const response = await axios.post(`${API_URL}/ai/chat`, {
         message: suggestion.prompt,
         userId,
+        conversationHistory: messages.slice(-10), // Son 10 mesaj
       });
 
-      if (response.data.success) {
-        const aiResponse = {
-          sender: "ai",
-          text: response.data.message,
-          suggestions: response.data.suggestions || [],
-        };
-
-        setMessages((prev) => [...prev, aiResponse]);
-
-        // ✅ her zaman öneri göster
-        if (aiResponse.suggestions.length > 0) {
-          setCurrentSuggestions(aiResponse.suggestions);
-        } else {
-          await loadSuggestions();
-        }
-      } else {
-        throw new Error(response.data.error || "Bir hata oluştu");
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || "Bir hata oluştu");
       }
+
+      // AI yanıtını ekle
+      const aiResponse = {
+        sender: "ai",
+        text: response.data.message,
+        suggestions: response.data.suggestions || [],
+      };
+
+      setMessages((prev) => [...prev, aiResponse]);
+
+      // Yeni önerileri güncelle
+      if (aiResponse.suggestions.length > 0) {
+        setCurrentSuggestions(aiResponse.suggestions);
+      } else {
+        await loadInitialSuggestions();
+      }
+
     } catch (err) {
-      const errorMessage = err.response?.data?.error || err.message || "AI yanıtı alınamadı";
-      setError(errorMessage);
+      const status = err.response?.status;
 
-      // hata mesajı
-      setMessages((prev) => [
-        ...prev,
-        { sender: "ai", text: `Hata: ${errorMessage}` },
-      ]);
+      if (status === 429) {
+        const retryAfter =
+          Number(err.response?.data?.retryAfter) ||
+          Number(err.response?.headers?.["retry-after"]) ||
+          30;
 
-      await loadSuggestions();
+        setCooldown(retryAfter);
+        setError(`⏳ Çok hızlısın! ${retryAfter} saniye bekle.`);
+        
+        // Kullanıcı mesajını geri al (spam önleme)
+        setMessages((prev) => prev.slice(0, -1));
+        return;
+      }
+
+      const msg =
+        err.response?.data?.error ||
+        err.message ||
+        "AI yanıtı alınamadı";
+
+      setError(msg);
+      
+      // Hata mesajını chat'e ekle
+      const errorResponse = {
+        sender: "ai",
+        text: `❌ Üzgünüm, bir hata oluştu: ${msg}\n\nLütfen tekrar dene veya başka bir seçenek dene.`,
+        suggestions: [],
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+      
+      await loadInitialSuggestions();
     } finally {
       setLoading(false);
     }
   };
 
   const handleClearChat = async () => {
-    const confirm = window.confirm("Konuşma geçmişini temizlemek istediğinize emin misiniz?");
+    const confirm = window.confirm("Konuşma geçmişini temizlemek istediğine emin misin?\n\nBu işlem geri alınamaz.");
     if (!confirm) return;
 
     setMessages([]);
     setCurrentSuggestions([]);
     setIsInitialized(false);
-    localStorage.removeItem("ai_chat_history");
-
+    setCooldown(0);
+    setError(null);
+    localStorage.removeItem(getChatKey());
+    
+    // Yeniden başlat
     await initializeChat();
   };
 
+  const PageBackground = () => (
+    <div className="pointer-events-none absolute inset-0">
+      <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
+      <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
+      <div className="absolute bottom-[-220px] left-1/2 -translate-x-1/2 w-[720px] h-[720px] bg-sky-200/35 rounded-full blur-3xl" />
+      <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
+    </div>
+  );
+
+  // Loading state
   if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">AI asistan hazırlanıyor...</p>
+      <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative">
+        <PageBackground />
+        <div className="relative z-10 min-h-screen grid place-items-center px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-900/10 bg-white/65 backdrop-blur-xl shadow-sm p-6">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 animate-pulse" />
+              <div className="flex-1">
+                <div className="h-3 w-40 rounded bg-slate-200 animate-pulse mb-2" />
+                <div className="h-3 w-56 rounded bg-slate-200 animate-pulse" />
+              </div>
+            </div>
+            <div className="mt-6 h-10 rounded-xl bg-slate-200 animate-pulse" />
+            <p className="mt-4 text-sm text-slate-600">AI asistan hazırlanıyor...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Sparkles className="text-yellow-500" />
-            Sınav Hazırlık Asistanı
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Sadece baloncuklara tıklayarak ilerleyin.
-          </p>
-        </div>
-        <button
-          onClick={handleClearChat}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
-        >
-          <RefreshCw size={18} />
-          Yeni Sohbet
-        </button>
-      </div>
+    <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative">
+      <PageBackground />
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">
-            ✕
-          </button>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-[72vh] flex flex-col">
-        {/* Mesajlar */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center text-gray-500 mt-20">
-              <Bot size={48} className="mx-auto mb-4 text-gray-400" />
-              <p className="mb-2">Baloncuklardan birini seçin.</p>
+      <div className="relative z-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
+          {/* HEADER */}
+          <div className="flex items-center justify-between gap-3 bg-white/65 backdrop-blur-xl rounded-2xl px-4 sm:px-6 py-4 shadow-sm border border-slate-900/10">
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-sm">
+                <Sparkles size={18} />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 truncate">
+                  Sınav Hazırlık Asistanı
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-700 mt-1">
+                  Baloncuklara tıklayarak ilerle, yazı yazmana gerek yok 💬
+                </p>
+              </div>
             </div>
-          ) : (
-            messages.map((msg, i) => (
-              <div key={i}>
-                <div
-                  className={`flex items-start gap-3 ${
-                    msg.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {msg.sender === "ai" && (
-                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full p-2.5 shadow-md flex-shrink-0">
-                      <Bot size={20} className="text-white" />
+
+            <button
+              onClick={handleClearChat}
+              className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-900/10 bg-white/70 px-3 sm:px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-white transition"
+              title="Sohbeti sıfırla"
+            >
+              <RefreshCw size={16} />
+              <span className="hidden sm:inline">Yeni Sohbet</span>
+            </button>
+          </div>
+
+          {/* ERROR BANNER */}
+          {error && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 backdrop-blur px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3 shadow-sm">
+              <div className="flex gap-2">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="rounded-lg px-2 py-1 hover:bg-red-100 shrink-0"
+                aria-label="Hata mesajını kapat"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* CHAT CONTAINER */}
+          <div className="mt-4 rounded-2xl border border-slate-900/10 bg-white/65 backdrop-blur-xl shadow-sm overflow-hidden">
+            <div className="h-[72vh] sm:h-[78vh] flex flex-col">
+              {/* MESSAGES AREA */}
+              <div
+                ref={chatScrollRef}
+                className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5"
+              >
+                {messages.length === 0 ? (
+                  <div className="h-full grid place-items-center text-center">
+                    <div className="max-w-sm">
+                      <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-sm">
+                        <Bot size={26} />
+                      </div>
+                      <p className="font-extrabold text-slate-900 text-lg">Baloncuklardan birini seç</p>
+                      <p className="text-sm text-slate-700 mt-2">
+                        Yazı yazmana gerek yok, baloncuklarla akış ilerler 🎈
+                      </p>
                     </div>
-                  )}
-
-                  <div
-                    className={`max-w-[75%] p-4 rounded-2xl text-sm leading-relaxed shadow-md ${
-                      msg.sender === "user"
-                        ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-gray-50 text-gray-800 rounded-bl-none border border-gray-200"
-                    }`}
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
-                    {msg.text}
                   </div>
+                ) : (
+                  messages.map((msg, i) => {
+                    const isUser = msg.sender === "user";
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-end gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+                      >
+                        {!isUser && (
+                          <div className="h-9 w-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                            <Bot size={16} />
+                          </div>
+                        )}
 
-                  {msg.sender === "user" && (
-                    <div className="bg-blue-600 p-2.5 rounded-full shadow-md flex-shrink-0">
-                      <User size={20} className="text-white" />
+                        <div
+                          className={[
+                            "px-4 py-3 text-sm leading-relaxed shadow-sm rounded-2xl",
+                            isUser
+                              ? "bg-slate-900 text-white"
+                              : "bg-white/70 text-slate-800 border border-slate-900/10",
+                            "max-w-[78%] sm:max-w-[70%]",
+                          ].join(" ")}
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {msg.text}
+                        </div>
+
+                        {isUser && (
+                          <div className="h-9 w-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                            <User size={16} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+
+                {/* LOADING INDICATOR */}
+                {loading && (
+                  <div className="flex items-end gap-3 justify-start">
+                    <div className="h-9 w-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                      <Bot size={16} />
+                    </div>
+                    <div className="rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 shadow-sm">
+                      <div className="flex gap-2">
+                        <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" />
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2">Düşünüyorum...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SUGGESTIONS BAR */}
+              <div className="border-t border-slate-900/10 bg-white/60 px-4 sm:px-6 py-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2 text-xs font-extrabold tracking-wide text-slate-700">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-white/70 text-slate-900 border border-slate-900/10">
+                      <Sparkles size={14} />
+                    </span>
+                    DEVAM SEÇENEKLERİ
+                  </div>
+                  
+                  {cooldown > 0 ? (
+                    <div className="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                      ⏳ {cooldown}s
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-600">
+                      Tıklayarak ilerle
                     </div>
                   )}
                 </div>
-              </div>
-            ))
-          )}
 
-          {loading && (
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full p-2.5 shadow-md">
-                <Bot size={20} className="text-white animate-pulse" />
-              </div>
-              <div className="bg-gray-50 px-5 py-3 rounded-2xl shadow-md text-gray-600 border border-gray-200">
-                Yanıt hazırlanıyor...
+                {currentSuggestions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {currentSuggestions.map((sug) => (
+                      <button
+                        key={sug.id}
+                        onClick={() => handleSuggestionClick(sug)}
+                        disabled={loading || cooldown > 0}
+                        className={[
+                          "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition",
+                          "border border-slate-900/10 bg-white/70 text-slate-900",
+                          "hover:bg-white hover:shadow-md hover:scale-105",
+                          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+                        ].join(" ")}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500" />
+                        <span className="text-left">{sug.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
+                    Öneriler yüklenemedi. Sayfayı yenile veya yeni sohbet başlat.
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          <div ref={chatEndRef}></div>
-        </div>
-
-        {/* Baloncuklar (tek giriş yöntemi) */}
-        <div className="border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white px-6 py-4">
-          <p className="text-xs font-semibold text-gray-600 mb-3 flex items-center gap-2">
-            <Sparkles size={14} className="text-yellow-500" />
-            Baloncuk seçerek devam edin
-          </p>
-
-          <div className="grid grid-cols-2 gap-2">
-            {(currentSuggestions || []).map((sug) => (
-              <button
-                key={sug.id}
-                onClick={() => handleSuggestionClick(sug)}
-                disabled={loading}
-                className="px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm hover:shadow-md text-left disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {sug.text}
-              </button>
-            ))}
           </div>
 
-          {!loading && (!currentSuggestions || currentSuggestions.length === 0) && (
-            <div className="mt-3 text-xs text-gray-500">
-              Öneriler yüklenemedi. Sayfayı yenileyin.
-            </div>
-          )}
+          {/* FOOTER NOTE */}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-slate-600">
+              💡 <strong>İpucu:</strong> Her yanıttan sonra, devam etmek için yeni baloncuklar belirir
+            </p>
+          </div>
         </div>
       </div>
     </div>

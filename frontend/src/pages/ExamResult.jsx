@@ -1,300 +1,250 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { Loader, Lightbulb, BookOpen } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { CheckCircle2, XCircle, MinusCircle, ArrowLeft, RotateCcw } from "lucide-react";
+import { API_URL } from "../api";
 
 function ExamResult() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { state } = useLocation();
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-
-  const { answers, questions, examTitle } = location.state || {};
-
-  const [explanations, setExplanations] = useState({});
-  const [loadingExplanations, setLoadingExplanations] = useState({});
-  const [analysis, setAnalysis] = useState(null);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-
-  if (!answers || !questions) {
-    return (
-      <div className="p-10 text-center">
-        <p className="text-xl font-bold mb-4">Sonuç bulunamadı.</p>
-        <button
-          onClick={() => navigate("/student/exams")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Sınavlara Dön
-        </button>
-      </div>
-    );
-  }
-
-  const correctCount = answers.filter(
-    (a, i) => a === questions[i].answer
-  ).length;
-
-  const score = Math.round((correctCount / questions.length) * 100);
-
-  // Sonucu kaydet + genel sınav analizi al
+  // state yoksa sınav listesine dön
   useEffect(() => {
-    if (!user || !user.id) return;
+    if (!state?.questions || !state?.answers) {
+      navigate("/student/exams", { replace: true });
+    }
+  }, [state, navigate]);
 
-    fetch("http://localhost:5000/api/user/save-test", {
+  if (!state?.questions || !state?.answers) return null;
+
+  const { questions, answers, examTitle } = state;
+
+  // backend: answer = q.correct (1..5), 0 ise "girilmamış"
+  const getCorrectIndex = (q) => {
+    const a = q.answer;
+    const len = q.options?.length || 0;
+
+    if (typeof a !== "number") return null;
+    if (a >= 1 && a <= len) return a - 1;
+    return null; // 0 veya saçma değer
+  };
+
+  const stats = useMemo(() => {
+    const total = questions.length;
+    let correct = 0;
+    let wrong = 0;
+    let empty = 0;
+
+    for (let i = 0; i < total; i++) {
+      const userAns = answers[i];
+      const correctIdx = getCorrectIndex(questions[i]);
+
+      if (userAns === null || userAns === undefined) empty++;
+      else if (correctIdx !== null && userAns === correctIdx) correct++;
+      else wrong++;
+    }
+
+    const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+    return { total, correct, wrong, empty, score };
+  }, [questions, answers]);
+
+  // ✅ DB'ye kaydet (sadece 1 kere)
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current) return;
+
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const userId = user?.id;
+    if (!userId) return;
+
+    savedRef.current = true;
+
+    fetch(`${API_URL}/user/save-test`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: user.id,
-        examName: examTitle || `Sınav #${id}`,
-        score,
-        correct: correctCount,
-        total: questions.length,
+        userId,
+       examId: Number(id), 
+        examName: examTitle || `Exam ${id}`,
+        score: stats.score,
+        correct: stats.correct,
+        total: stats.total,
       }),
-    }).catch(err => console.error("Sonuç kaydetme hatası:", err));
-
-    if (questions && answers) {
-      setLoadingAnalysis(true);
-      axios
-        .post("http://localhost:5000/api/ai/analyze-exam", {
-          userId: user.id,
-          examName: examTitle || `Sınav #${id}`,
-          questions,
-          answers,
-        })
-        .then(res => {
-          if (res.data.success) {
-            setAnalysis(res.data.analysis);
-          } else if (res.data.error) {
-            setAnalysis(
-              `Analiz yapılırken hata oluştu: ${res.data.error}. Lütfen sonra tekrar deneyin.`
-            );
-          }
-        })
-        .catch(err => {
-          console.error("Analiz hatası:", err);
-          const errorMessage =
-            err.response?.data?.error || err.message || "Bilinmeyen hata";
-          setAnalysis(
-            `Analiz yapılırken hata oluştu: ${errorMessage}. Lütfen sayfayı yenileyip tekrar deneyin.`
-          );
-        })
-        .finally(() => {
-          setLoadingAnalysis(false);
-        });
-    }
-  }, []); // ilk yüklemede bir kez
-
-  // Tek bir sorunun AI açıklamasını al
-  const fetchExplanation = async (
-    questionIndex,
-    question,
-    options,
-    userAnswer,
-    correctAnswer
-  ) => {
-    if (explanations[questionIndex]) return; // zaten var
-
-    setLoadingExplanations(prev => ({ ...prev, [questionIndex]: true }));
-
-    try {
-      const res = await axios.post(
-        "http://localhost:5000/api/ai/explain-question",
-        {
-          question,
-          options,
-          userAnswer,
-          correctAnswer,
-          questionIndex,
-        }
-      );
-
-      if (res.data.success) {
-        setExplanations(prev => ({
-          ...prev,
-          [questionIndex]: res.data.explanation,
-        }));
-      } else {
-        const msg =
-          res.data.error || "AI açıklaması alınamadı (backend success=false)";
-        setExplanations(prev => ({
-          ...prev,
-          [questionIndex]: `Açıklama yüklenemedi: ${msg}`,
-        }));
-      }
-    } catch (err) {
-      console.error("Açıklama hatası:", err);
-      const errorMessage =
-        err.response?.data?.error || err.message || "Bilinmeyen hata";
-      setExplanations(prev => ({
-        ...prev,
-        [questionIndex]: `Açıklama yüklenirken hata oluştu: ${errorMessage}.`,
-      }));
-    } finally {
-      setLoadingExplanations(prev => ({
-        ...prev,
-        [questionIndex]: false,
-      }));
-    }
-  };
-
-  // TÜM YANLIŞ SORULAR İÇİN OTOMATİK AÇIKLAMA İSTE
-  useEffect(() => {
-    questions.forEach((q, index) => {
-      const isCorrect = answers[index] === q.answer;
-      if (!isCorrect) {
-        fetchExplanation(
-          index + 1,
-          q.question,
-          q.options,
-          answers[index],
-          q.answer
-        );
-      }
-    });
-    // explanations'ı dependency'e koymuyoruz ki sonsuz döngü olmasın
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ilk render sonrası bir kere
+    }).catch((e) => console.error("save-test error:", e));
+  }, [stats, examTitle, id]);
 
   return (
-    <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow">
-      <h1 className="text-3xl font-bold mb-4">
-        Sınav Sonucu: {examTitle || `Sınav #${id}`}
-      </h1>
-
-      <div className="bg-gray-100 p-4 rounded-lg mb-6">
-        <p className="text-2xl font-semibold">
-          Doğru Sayısı:{" "}
-          <span className="text-green-600">{correctCount}</span> /{" "}
-          <span className="text-blue-600">{questions.length}</span>
-        </p>
-        <p className="text-gray-600 mt-2">
-          Başarı Oranı:{" "}
-          <span className="font-semibold text-purple-700">%{score}</span>
-        </p>
+    <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
+        <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-220px] left-1/2 -translate-x-1/2 w-[720px] h-[720px] bg-sky-200/35 rounded-full blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
 
-      {/* Genel AI Sınav Analizi */}
-      {analysis && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl mb-6 border border-blue-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="text-yellow-600" size={24} />
-            <h2 className="text-2xl font-bold">AI Sınav Analizi</h2>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-              {analysis}
+      <div className="relative z-10 max-w-5xl mx-auto px-4 md:px-8 lg:px-10 py-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-900/10 bg-white/60 px-4 py-2 text-sm text-slate-700">
+              Sonuç Ekranı
+            </div>
+            <h1 className="mt-3 text-2xl md:text-4xl font-extrabold text-slate-900">
+              {examTitle || "Sınav"} — Sonuç
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 font-semibold">
+              Sınav ID: <span className="text-slate-900">{id}</span>
             </p>
           </div>
+
+          <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-5 shadow-sm w-full md:w-[360px]">
+            <div className="text-sm font-extrabold text-slate-700">Skor</div>
+            <div className="mt-1 text-4xl font-extrabold text-slate-900">%{stats.score}</div>
+
+            <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+              <StatPill
+                icon={<CheckCircle2 className="w-4 h-4" />}
+                label="Doğru"
+                value={stats.correct}
+                className="bg-emerald-50 text-emerald-700 border-emerald-200"
+              />
+              <StatPill
+                icon={<XCircle className="w-4 h-4" />}
+                label="Yanlış"
+                value={stats.wrong}
+                className="bg-rose-50 text-rose-700 border-rose-200"
+              />
+              <StatPill
+                icon={<MinusCircle className="w-4 h-4" />}
+                label="Boş"
+                value={stats.empty}
+                className="bg-slate-50 text-slate-700 border-slate-200"
+              />
+            </div>
+          </div>
         </div>
-      )}
 
-      {loadingAnalysis && (
-        <div className="bg-blue-50 p-4 rounded-lg mb-6 flex items-center gap-2">
-          <Loader className="animate-spin text-blue-600" size={20} />
-          <span className="text-blue-700">Sınav analizi yapılıyor...</span>
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <Link
+            to="/student/exams"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-extrabold bg-white/70 border border-slate-900/10 hover:bg-white transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Sınavlara Dön
+          </Link>
+
+          <Link
+            to={`/student/exam/${id}`}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-extrabold text-white
+                       bg-gradient-to-r from-emerald-500 to-cyan-500 hover:brightness-105 transition
+                       shadow-[0_14px_40px_rgba(16,185,129,0.18)]"
+          >
+            <RotateCcw className="w-5 h-5" />
+            Tekrar Çöz
+          </Link>
         </div>
-      )}
 
-      <h2 className="text-2xl font-bold mb-4">Soru Analizi</h2>
+        <div className="mt-8 space-y-4">
+          {questions.map((q, idx) => {
+            const userIdx = answers[idx];
+            const correctIdx = getCorrectIndex(q);
 
-      <div className="space-y-6">
-        {questions.map((q, index) => {
-          const isCorrect = answers[index] === q.answer;
-          const explanation = explanations[index + 1];
-          const isLoadingExplanation = loadingExplanations[index + 1];
+            const isEmpty = userIdx === null || userIdx === undefined;
+            const isCorrect = !isEmpty && correctIdx !== null && userIdx === correctIdx;
 
-          return (
-            <div
-              key={index}
-              className={`p-5 rounded-xl border ${
-                isCorrect
-                  ? "bg-green-50 border-green-400"
-                  : "bg-red-50 border-red-400"
-              }`}
-            >
-              <p className="text-lg font-semibold mb-2">
-                {index + 1}. {q.question}
-              </p>
+            const userLetter = isEmpty ? "Boş" : String.fromCharCode(65 + userIdx);
+            const correctLetter =
+              correctIdx === null ? "Girilmamış" : String.fromCharCode(65 + correctIdx);
 
-              {q.image_url && (
-                <img
-                  src={`http://localhost:5000${q.image_url}`}
-                  alt="Soru görseli"
-                  className="max-w-md mb-3 rounded-lg shadow"
-                />
-              )}
-
-              <p className="mb-1">
-                <span className="font-bold">Senin cevabın:</span>{" "}
-                <span
-                  className={isCorrect ? "text-green-700" : "text-red-700"}
-                >
-                  {q.options[answers[index]] ?? "Boş bıraktın"}
-                </span>
-              </p>
-
-              {!isCorrect && (
-                <p className="mb-3">
-                  <span className="font-bold">Doğru cevap:</span>{" "}
-                  <span className="text-blue-700">
-                    {q.options[q.answer] ?? q.answer}
-                  </span>
-                </p>
-              )}
-
-              {/* Yanlış sorular için AI açıklaması (OTOMATİK) */}
-              {!isCorrect && (
-                <div className="bg-white p-4 rounded-lg shadow-sm mt-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BookOpen className="text-purple-600" size={18} />
-                    <p className="font-semibold text-purple-700">
-                      AI Açıklaması:
-                    </p>
+            return (
+              <div
+                key={idx}
+                className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-6 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-extrabold text-slate-600">
+                      Soru {idx + 1}
+                    </div>
+                    <div className="mt-1 text-lg font-extrabold text-slate-900">
+                      {q.question}
+                    </div>
                   </div>
 
-                  {isLoadingExplanation && !explanation && (
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Loader className="animate-spin" size={16} />
-                      <span className="text-sm">
-                        Açıklama yükleniyor...
-                      </span>
-                    </div>
-                  )}
-
-                  {!isLoadingExplanation && explanation && (
-                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-                      {explanation}
-                    </p>
-                  )}
-
-                  {!isLoadingExplanation && !explanation && (
-                    <p className="text-xs text-gray-500">
-                      Açıklama alınamadı. Lütfen daha sonra tekrar dene.
-                    </p>
-                  )}
+                  <div
+                    className={[
+                      "shrink-0 px-3 py-1 rounded-full border text-xs font-extrabold",
+                      isEmpty
+                        ? "bg-slate-50 text-slate-700 border-slate-200"
+                        : isCorrect
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200",
+                    ].join(" ")}
+                  >
+                    {isEmpty ? "Boş" : isCorrect ? "Doğru" : "Yanlış"}
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
 
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={() => navigate("/student/exams")}
-          className="bg-gray-300 px-4 py-2 rounded-lg"
-        >
-          Sınavlara Dön
-        </button>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-4">
+                    <div className="font-extrabold text-slate-700 mb-1">Senin Cevabın</div>
+                    <div className="text-slate-900 font-extrabold">{userLetter}</div>
+                  </div>
 
-        <button
-          onClick={() => navigate("/student/performance")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Performans Analizi
-        </button>
+                  <div className="rounded-2xl border border-slate-900/10 bg-white/70 p-4">
+                    <div className="font-extrabold text-slate-700 mb-1">Doğru Cevap</div>
+                    <div className="text-slate-900 font-extrabold">{correctLetter}</div>
+                  </div>
+                </div>
+
+                {Array.isArray(q.options) && q.options.length > 0 && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {q.options.map((opt, oi) => {
+                      const isUser = userIdx === oi;
+                      const isRight = correctIdx === oi;
+
+                      return (
+                        <div
+                          key={oi}
+                          className={[
+                            "rounded-2xl border p-3 text-sm",
+                            isRight
+                              ? "border-emerald-300 bg-emerald-50"
+                              : isUser
+                              ? "border-rose-300 bg-rose-50"
+                              : "border-slate-900/10 bg-white/60",
+                          ].join(" ")}
+                        >
+                          <div className="font-extrabold text-slate-700 mb-1">
+                            {String.fromCharCode(65 + oi)}
+                            {isRight ? " (Doğru)" : isUser ? " (Sen)" : ""}
+                          </div>
+                          <div className="text-slate-800">{opt}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 text-center text-xs text-slate-500 font-semibold">
+          © 2025 EduAI Platform
+        </div>
       </div>
+    </div>
+  );
+}
+
+function StatPill({ icon, label, value, className }) {
+  return (
+    <div className={`rounded-2xl border px-3 py-2 ${className}`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <div className="font-extrabold">{label}</div>
+      </div>
+      <div className="mt-1 text-lg font-extrabold">{value}</div>
     </div>
   );
 }

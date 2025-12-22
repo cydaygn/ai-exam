@@ -53,14 +53,18 @@ router.post("/login", (req, res) => {
 // SINAV OLUŞTUR
 // ---------------------------------------------
 router.post("/exam/create", (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, exam_type } = req.body;
+
+  if (!["yks", "ales", "kpss"].includes(exam_type)) {
+    return res.status(400).json({ error: "Geçersiz sınav türü" });
+  }
 
   db.query(
-    "INSERT INTO exams (title, description) VALUES (?, ?)",
-    [title, description],
+    "INSERT INTO exams (title, description, exam_type) VALUES (?, ?, ?)",
+    [title, description, exam_type],
     (err, result) => {
-      if (err) return res.status(500).json({ success: false });
-      res.json({ success: true, examId: result.insertId });
+      if (err) return res.status(500).json({ error: err });
+      res.json({ success: true, id: result.insertId });
     }
   );
 });
@@ -258,7 +262,7 @@ router.get("/students", (req, res) => {
       u.id, 
       u.name, 
       u.email,
-      COUNT(ut.id) AS totalTests,
+      COUNT(DISTINCT ut.exam_name) AS totalTests,
       COALESCE(ROUND(AVG(ut.score)), 0) AS avgScore,
       COALESCE(MAX(ut.created_at), '') AS lastTest
     FROM users u
@@ -303,7 +307,7 @@ router.get("/dashboard/stats", (req, res) => {
     topStudents: `
       SELECT 
         u.name,
-        COUNT(ut.id) AS test_count,
+        COUNT(DISTINCT ut.exam_name) AS test_count,
         COALESCE(ROUND(AVG(ut.score)), 0) AS avg_score
       FROM users u
       JOIN user_tests ut ON ut.user_id = u.id

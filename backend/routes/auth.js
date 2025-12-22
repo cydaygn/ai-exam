@@ -5,53 +5,86 @@ import db from "../db.js";
 
 const router = express.Router();
 
+// helper
+const normalizeEmail = (v) => String(v || "").trim().toLowerCase();
+const normalizeName = (v) => String(v || "").trim();
+
 // Kayıt (Register)
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const name = normalizeName(req.body.name);
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
 
-  const hashedPass = await bcrypt.hash(password, 10);
-
-  db.query(
-    "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-    [name, email, hashedPass],
-    (err) => {
-      if (err) {
-        return res.status(400).json({ success: false, message: "Email zaten kayıtlı" });
-      }
-      return res.json({ success: true, message: "Kayıt başarılı!" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "Eksik bilgi" });
     }
-  );
+
+    const hashedPass = await bcrypt.hash(password, 10);
+
+    db.query(
+      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+      [name, email, hashedPass],
+      (err) => {
+        if (err) {
+          // duplicate email vb.
+          return res.status(400).json({ success: false, message: "Email zaten kayıtlı" });
+        }
+        return res.status(201).json({ success: true, message: "Kayıt başarılı!" });
+      }
+    );
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Sunucu hatası" });
+  }
 });
 
 // Giriş (Login)
 router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
 
-  db.query("SELECT * FROM users WHERE email = ?", [email], async (err, rows) => {
-    if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: "Kullanıcı bulunamadı" });
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: "Eksik bilgi" });
+  }
+
+  // ✅ TRIM + LOWER ile eşleştir
+  db.query(
+    "SELECT * FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+    [email],
+    async (err, rows) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: "DB hatası" });
+      }
+
+      if (!rows || rows.length === 0) {
+        return res.status(401).json({ success: false, message: "Kullanıcı bulunamadı" });
+      }
+
+      const user = rows[0];
+
+      const passOk = await bcrypt.compare(password, user.password);
+      if (!passOk) {
+        return res.status(401).json({ success: false, message: "Şifre hatalı" });
+      }
+
+      const token = jwt.sign(
+        { id: user.id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" } // opsiyonel
+      );
+
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+        token,
+      });
     }
-
-    const user = rows[0];
-
-    const passOk = await bcrypt.compare(password, user.password);
-    if (!passOk) {
-      return res.status(401).json({ success: false, message: "Şifre hatalı" });
-    }
-
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
-
-    return res.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      token,
-    });
-  });
+  );
 });
 
 export default router;
