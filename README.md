@@ -52,11 +52,15 @@ ai-exam/
 
 ### Dağıtım  
 - Frontend: Vercel  
-- Backend: Railway  
-## Proje Amacı  
-Bu proje, bir sınav / değerlendirme uygulaması için arka uç (backend) ve ön uç (frontend) bileşenlerini içeriyor. Tam olarak tanımlı değil — README, açıklama veya ana sayfa bulunmuyor — bu nedenle geliştirici yorumu gerekir.
+- Backend: Railway
 
- Kurulum
+## Proje Amacı  
+Bu proje,
+yapay zekâ destekli eğitim sistemleri,
+öğrenci performans analizi
+ve modern full-stack web geliştirme konularını bir araya getiren bir uygulamadır.
+
+## Kurulum
 1- Repoyu klonla
 git clone https://github.com/cydaygn/ai-exam.git
 cd ai-exam
