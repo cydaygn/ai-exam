@@ -12,9 +12,28 @@ Yapay zekâ destekli, kişiselleştirilmiş sınav ve öğrenme platformu.
 - MySQL tabanlı veri yönetimi  
 - Railway & Vercel üzerinde dağıtım
 
-**Dizin yapısı**:  
-- `backend/` – sunucu tarafı kodları  
-- `frontend/` – istemci tarafı kodları  
+##  Proje Mimarisi
+
+```bash
+ai-exam/
+├── backend/
+│   ├── routes/
+│   │   ├── auth.js      # Authentication
+│   │   ├── user.js      # User operations
+│   │   ├── admin.js     # Admin operations
+│   │   └── ai.js        # AI endpoints
+│   └── uploads/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/       # UI pages
+│   │   ├── layout/      # Admin / Student layouts
+│   │   └── App.jsx
+│   └── tailwind.config.js
+│
+├── .gitignore
+└── README.md
+
 
 ## Teknolojiler  
 
@@ -37,22 +56,17 @@ Yapay zekâ destekli, kişiselleştirilmiş sınav ve öğrenme platformu.
 ## Proje Amacı  
 Bu proje, bir sınav / değerlendirme uygulaması için arka uç (backend) ve ön uç (frontend) bileşenlerini içeriyor. Tam olarak tanımlı değil — README, açıklama veya ana sayfa bulunmuyor — bu nedenle geliştirici yorumu gerekir.
 
-## Kurulum  
-1. Depoyu klonlayın:  
-   ```bash
-   git clone https://github.com/cydaygn/ai-exam.git
-   cd ai-exam
+ Kurulum
+1- Repoyu klonla
+git clone https://github.com/cydaygn/ai-exam.git
+cd ai-exam
 
+2️- Backend’i çalıştır
 cd backend
-
 npm install
+npm run dev
 
-npm run dev 
-
-
-cd ../frontend
-
+3️- Frontend’i çalıştır
+cd frontend
 npm install
-
-npm start
-
+npm run dev
