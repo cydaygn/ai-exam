@@ -25,7 +25,8 @@ function Exams() {
             "bg-gradient-to-r from-cyan-600 to-sky-600 bg-clip-text text-transparent",
           // buton gradient
           button:
-            "bg-gradient-to-r from-cyan-500 to-sky-500 shadow-[0_14px_40px_rgba(6,182,212,0.22)]",
+         "bg-gradient-to-r from-indigo-700 to-sky-400 shadow-[0_14px_40px_rgba(67,56,202,0.28)]"
+
         };
       case "ales":
         return {
@@ -37,7 +38,7 @@ function Exams() {
           title:
             "bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent",
           button:
-            "bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-[0_14px_40px_rgba(16,185,129,0.22)]",
+   "bg-gradient-to-r from-emerald-500 to-green-400 shadow-[0_14px_40px_rgba(16,185,129,0.34)]"
         };
       case "kpss":
         return {
@@ -46,10 +47,11 @@ function Exams() {
           badgeIcon: <Award className="w-4 h-4 text-amber-500" />,
           card:
             "bg-white/65 backdrop-blur-xl border border-slate-900/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition",
-          title:
-            "bg-gradient-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent",
-          button:
-            "bg-gradient-to-r from-sky-500 to-cyan-500 shadow-[0_14px_40px_rgba(14,165,233,0.22)]",
+        title:
+  "bg-gradient-to-r from-red-600 to-rose-700 bg-clip-text text-transparent",
+     button:
+      "bg-gradient-to-r from-red-600 to-rose-800 shadow-[0_14px_40px_rgba(159,18,57,0.36)]"
+
         };
       default:
         return {
@@ -88,23 +90,20 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
 
       {/* Üst başlık alanı */}
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-10 pb-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">
-            <span className={activeStyle.title}>
-              Sınavlarım
-            </span>
-          </h1>
+        <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">
+          <span className={activeStyle.title}>
+            Sınavlarım
+          </span>
+        </h1>
 
-          <p className="text-slate-700 mt-3 max-w-2xl">
-            Filtre seç, denemelerini görüntüle ve tek tıkla başla.
-          </p>
-        </div>
+        <p className="text-slate-700 mt-3 max-w-2xl">
+          Filtre seç, denemelerini görüntüle ve tek tıkla başla.
+        </p>
       </div>
 
       {/* Filtre butonları */}
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pb-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3">
             <FilterPill to="/student/exams?type=yks" active={examType === "yks"}>
               YKS
             </FilterPill>
@@ -121,12 +120,10 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
               Hepsi
             </FilterPill>
           </div>
-        </div>
       </div>
 
       {/* Kartlar */}
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pb-14">
-        <div className="max-w-6xl mx-auto">
           {exams.length === 0 ? (
             <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-10 text-center shadow-sm">
               <div className="text-3xl mb-3">🗂️</div>
@@ -174,7 +171,6 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
               })}
             </div>
           )}
-        </div>
       </div>
     </div>
   );

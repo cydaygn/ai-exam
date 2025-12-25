@@ -159,12 +159,7 @@ function Login() {
                 Şifre
               </label>
 
-              <Link
-                to="/forgot-password"
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition"
-              >
-                Şifremi unuttum
-              </Link>
+           
             </div>
 
             <div

@@ -105,12 +105,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
         prompt: "Sınava kadar zamanı en verimli nasıl kullanabilirim?",
         context: "after_analysis"
       },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka ne konuda yardımcı olabilirsin?",
-        context: "reset"
-      }
+    
     ];
   }
   
@@ -141,50 +136,39 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
         prompt: "Bu planı nasıl takip edebilirim? Kontrol listesi ve hatırlatıcı sistemi öner",
         context: "plan_tracking"
       },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka konuda yardım ister misin?",
-        context: "reset"
-      }
+  
     ];
   }
   
-  // SENARYO 3: Konu çalışması önerisi
-  if (prompt.includes("konu") || prompt.includes("zayıf")) {
-    return [
-      { 
-        id: "how_to_study", 
-        text: "📖 Bu konuyu nasıl çalışmalıyım?", 
-        prompt: "Bu konuları çalışmak için en etkili yöntemleri detaylı anlat",
-        context: "study_method"
-      },
-      { 
-        id: "resources", 
-        text: "📚 Kaynak öner", 
-        prompt: "Bu konular için hangi kaynakları kullanmalıyım?",
-        context: "resources"
-      },
-      { 
-        id: "priority_order", 
-        text: "🎯 Öncelik sırası ver", 
-        prompt: "Bu konuları hangi sırayla çalışmalıyım? Öncelik sıralaması yap",
-        context: "priority"
-      },
-      { 
-        id: "create_schedule", 
-        text: "📅 Bunlar için program yap", 
-        prompt: "Bu konular için haftalık çalışma programı oluştur",
-        context: "schedule"
-      },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka ne yardımım olabilir?",
-        context: "reset"
-      }
-    ];
-  }
+ if (prompt.includes("konu") || prompt.includes("zayıf")) {
+  return [
+    {
+      id: "analyze_last_exam",
+      text: "📊 Son denememde neyi düzeltmeliyim?",
+      prompt: "Son denememe göre en çok puan kaybettiren 3 hatayı söyle ve çözüm ver",
+      context: "after_analysis",
+    },
+    {
+      id: "weekly_exam_plan",
+      text: "📝 Haftalık deneme planı yap",
+      prompt: "1 haftalık deneme + tekrar planı yap (gün gün)",
+      context: "plan",
+    },
+    {
+      id: "time_strategy",
+      text: "⏱️ Süre yetiştirme stratejisi",
+      prompt: "Denemede süre yetmiyor: bölüm bölüm zaman stratejisi ver",
+      context: "time",
+    },
+    {
+      id: "mistake_book",
+      text: "📒 Yanlış defteri sistemi",
+      prompt: "Yanlışlarımı kalıcı düzeltmek için 'yanlış defteri' sistemi kur",
+      context: "mistakes",
+    },
+  ];
+}
+
   
   // SENARYO 4: Motivasyon ve strateji
   if (prompt.includes("motivasyon") || prompt.includes("strateji")) {
@@ -213,12 +197,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
         prompt: "Sınav stresini yönetmek için neler yapabilirim?",
         context: "stress"
       },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka hangi konuda destek olabilirim?",
-        context: "reset"
-      }
+     
     ];
   }
   
@@ -243,12 +222,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
         prompt: "Bunu daha basit ve anlaşılır şekilde açıkla",
         context: "simplify"
       },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka ne öğrenmek istersin?",
-        context: "reset"
-      }
+    
     ];
   }
   
@@ -273,12 +247,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
         prompt: "Planı uygulayamıyorum, daha realistik bir versiyon hazırla",
         context: "adjust"
       },
-      { 
-        id: "back_to_start", 
-        text: "🔙 Ana menüye dön", 
-        prompt: "Başka nasıl yardımcı olabilirim?",
-        context: "reset"
-      }
+  
     ];
   }
   
@@ -302,12 +271,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
       prompt: "Aynı konu için farklı bir yaklaşım öner",
       context: "alternative"
     },
-    { 
-      id: "back_to_start", 
-      text: "🔙 Ana menüye dön", 
-      prompt: "Ana menüye dön, başka konu",
-      context: "reset"
-    }
+  
   ];
 }
 
@@ -363,6 +327,9 @@ Kurallar:
 - Maddeli liste kullan
 - Pratik ve uygulanabilir öneriler sun
 - Türkçe yanıt ver
+- Asla konu adı uydurma. Konu/veri yoksa 'son deneme sonuçlarını' iste.
+- Kullanıcı konu sormuyorsa "konu" kelimesini kullanma; "deneme/sınav" üzerinden konuş.
+
 - Dostça ama profesyonel ol`
       },
       ...conversationHistory.slice(-6).map(msg => ({

@@ -82,15 +82,13 @@ function Performance() {
         </div>
 
         <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-14 pb-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-900/10 bg-white/60 px-4 py-2 text-sm text-slate-700 mb-6">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              Performans verileri hazırlanıyor
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-900/10 bg-white/60 px-4 py-2 text-sm text-slate-700 mb-6">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            Performans verileri hazırlanıyor
+          </div>
 
-            <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-10 shadow-sm">
-              <p className="text-center text-slate-700">Yükleniyor...</p>
-            </div>
+          <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-10 shadow-sm">
+            <p className="text-center text-slate-700">Yükleniyor...</p>
           </div>
         </div>
       </div>
@@ -218,18 +216,17 @@ const barMax = Math.max(10, ...(topicPerf.map((t) => Number(t.topic_score) || 0)
         <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-10 pb-14">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-3">
-            <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
-              Performans Analizi
-            </span>
-          </h1>
-          <p className="text-slate-700 max-w-2xl mb-10">
-            Haftalık başarı trendi, konu bazlı skorlar ve güçlü/zayıf alanların.
-          </p>
+        <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-3">
+          <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+            Performans Analizi
+          </span>
+        </h1>
+        <p className="text-slate-700 max-w-2xl mb-10">
+          Haftalık başarı trendi, konu bazlı skorlar ve güçlü/zayıf alanların.
+        </p>
 
-          {/* Stat cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        {/* Stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <StatCard
               title="Genel Başarı"
               value={`%${averageScore}`}
@@ -321,7 +318,6 @@ const barMax = Math.max(10, ...(topicPerf.map((t) => Number(t.topic_score) || 0)
                 </div>
               )}
             </div>
-          </div>
         </div>
       </div>
     </div>

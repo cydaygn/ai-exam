@@ -262,6 +262,7 @@ router.get("/students", (req, res) => {
       u.id, 
       u.name, 
       u.email,
+      COALESCE(u.plan, 'free') AS plan,
       COUNT(DISTINCT ut.exam_name) AS totalTests,
       COALESCE(ROUND(AVG(ut.score)), 0) AS avgScore,
       COALESCE(MAX(ut.created_at), '') AS lastTest
@@ -271,7 +272,7 @@ router.get("/students", (req, res) => {
     GROUP BY u.id
     ORDER BY u.id DESC
   `;
-  
+
   db.query(query, (err, rows) => {
     if (err) {
       console.error("Öğrenciler getirilirken hata:", err);

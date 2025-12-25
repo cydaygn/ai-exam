@@ -82,9 +82,13 @@ function LandingPage() {
             Kişiselleştirilmiş denemeler, yapay zeka destekli açıklamalar ve konu bazlı
             analizlerle çalışma sürecini daha verimli hale getir.
           </p>
+<p className="text-xs text-slate-600 mb-5">
+  ⚡ 2 dakikada hesap oluştur, hemen denemelere başla
+</p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-            <button
+           
+           <button
               onClick={() => navigate("/register")}
               className="group px-9 md:px-10 py-3 md:py-4 text-lg font-bold
                          bg-gradient-to-r from-emerald-500 to-cyan-500

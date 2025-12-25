@@ -28,7 +28,7 @@ function AdminExams() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [examType, setExamType] = useState("yks"); // ✅ YKS / ALES / KPSS
+  const [examType, setExamType] = useState("yks"); // YKS / ALES / KPSS
 
   const [question, setQuestion] = useState("");
   const [option1, setOption1] = useState("");
@@ -182,11 +182,11 @@ function AdminExams() {
     setImageFile(null);
     setImagePreview(null);
   };
+
   const addQuestion = async () => {
     if (!question.trim()) return alert("Soru boş olamaz");
-    if (!option1 || !option2 || !option3 || !option4 || !option5) {
-      return alert("Tüm şıklar doldurulmalıdır");
-    }
+    if (!option1 || !option2 || !option3 || !option4 || !option5) return alert("Tüm şıklar doldurulmalıdır");
+
     const form = new FormData();
     form.append("question", question);
     form.append("option1", option1);
@@ -196,10 +196,9 @@ function AdminExams() {
     form.append("option5", option5);
     form.append("correct", String(correct));
     if (imageFile) form.append("image", imageFile);
+
     try {
-      await api.post(`/admin/exam/${selectedExam}/question`, form, {
-        headers: { ...authHeaders },
-      });
+      await api.post(`/admin/exam/${selectedExam}/question`, form, { headers: { ...authHeaders } });
       alert("Soru eklendi!");
       resetQuestionForm();
       fetchExamQuestions(selectedExam);
@@ -208,12 +207,12 @@ function AdminExams() {
       console.error(e);
     }
   };
+
   const updateQuestion = async () => {
     if (!editQuestionId) return;
     if (!question.trim()) return alert("Soru boş olamaz");
-    if (!option1 || !option2 || !option3 || !option4 || !option5) {
-      return alert("Tüm şıklar doldurulmalıdır");
-    }
+    if (!option1 || !option2 || !option3 || !option4 || !option5) return alert("Tüm şıklar doldurulmalıdır");
+
     try {
       await api.put(
         `/admin/question/${editQuestionId}`,
@@ -230,6 +229,7 @@ function AdminExams() {
       console.error(e);
     }
   };
+
   const handleBulkAdd = async () => {
     setBulkLoading(true);
     try {
@@ -241,6 +241,7 @@ function AdminExams() {
 
       const questions = [];
       let i = 0;
+
       while (i < lines.length) {
         if (!lines[i].match(/^[A-E]\)/i) && !lines[i].match(/^[A-E]$/i)) {
           let questionText = lines[i].trim().replace(/^\d+\.\s*/, "");
@@ -252,9 +253,11 @@ function AdminExams() {
               i++;
             } else break;
           }
+
           questionText = questionText.trim();
           const options = [];
           const optionPattern = /^([A-E])\)\s*(.+)$/i;
+
           for (let j = 0; j < 5 && i < lines.length; j++) {
             const match = lines[i].match(optionPattern);
             if (match) {
@@ -271,6 +274,7 @@ function AdminExams() {
               options.push(optionText.trim());
             } else break;
           }
+
           let correctIndex = 0;
           if (i < lines.length) {
             const answerLine = lines[i].trim().toUpperCase();
@@ -280,6 +284,7 @@ function AdminExams() {
               i++;
             }
           }
+
           if (questionText && options.length === 5) {
             questions.push({
               question: questionText,
@@ -295,6 +300,7 @@ function AdminExams() {
           i++;
         }
       }
+
       if (questions.length === 0) {
         alert(
           "Hiç soru algılanamadı!\n\n" +
@@ -310,11 +316,13 @@ function AdminExams() {
         );
         return;
       }
+
       const res = await api.post(
         `/admin/exam/${selectedExam}/bulk-questions`,
         { questions },
         { headers: authHeaders }
       );
+
       alert(`✅ ${res.data.count} soru başarıyla eklendi!`);
       setBulkText("");
       setShowBulkAdd(false);
@@ -326,6 +334,7 @@ function AdminExams() {
       setBulkLoading(false);
     }
   };
+
   const selectExam = (id) => {
     setSelectedExam(id);
     setShowBulkAdd(false);
@@ -334,7 +343,9 @@ function AdminExams() {
     resetQuestionForm();
     fetchExamQuestions(id);
   };
+
   const selectedExamObj = Array.isArray(exams) ? exams.find((e) => e.id === selectedExam) : null;
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
       {/* background */}
@@ -344,6 +355,7 @@ function AdminExams() {
         <div className="absolute bottom-[-220px] left-1/2 -translate-x-1/2 w-[720px] h-[720px] bg-sky-200/35 rounded-full blur-3xl" />
         <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
+
       {/* topbar */}
       <nav className="relative z-20 flex items-center justify-between px-8 md:px-12 py-5 bg-white/65 backdrop-blur-xl border-b border-slate-900/10">
         <button
@@ -364,321 +376,322 @@ function AdminExams() {
         </div>
         <div />
       </nav>
-      <main className="relative z-10 px-6 md:px-10 lg:px-16 py-10 md:py-12">
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* header */}
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold">Sınav Yönetimi</h1>
-            <p className="text-slate-700 mt-1">Sınav oluştur, güncelle, soruları tek tek veya toplu ekle.</p>
+
+      <main className="relative z-10 px-6 md:px-10 lg:px-16 py-10 md:py-12 space-y-6">
+        {/* header */}
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold">Sınav Yönetimi</h1>
+          <p className="text-slate-700 mt-1">Sınav oluştur, güncelle, soruları tek tek veya toplu ekle.</p>
+        </div>
+
+        {/* create exam */}
+        <GlassCard title="Yeni Sınav Oluştur" rightIcon={<PlusCircle className="w-5 h-5 text-slate-400" />}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Sınav Başlığı</Label>
+              <input
+                className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Sınav Türü</Label>
+              <div className="relative">
+                <select
+                  className="w-full appearance-none rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 pr-10
+                             outline-none cursor-pointer hover:bg-white
+                             focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/30
+                             transition shadow-sm"
+                  value={examType}
+                  onChange={(e) => setExamType(e.target.value)}
+                >
+                  <option value="yks">YKS</option>
+                  <option value="ales">ALES</option>
+                  <option value="kpss">KPSS</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <Label>Açıklama</Label>
+              <textarea
+                className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
-     {/* create exam */}
-<GlassCard title="Yeni Sınav Oluştur" rightIcon={<PlusCircle className="w-5 h-5 text-slate-400" />}>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div>
-      <Label>Sınav Başlığı</Label>
-      <input
-        className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}  />
-    </div>
- <div>
-  <Label>Sınav Türü</Label>
-  <div className="relative">
-    <select
-      className="w-full appearance-none rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 pr-10
-                 outline-none cursor-pointer hover:bg-white
-                 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/30
-                 transition shadow-sm"
-      value={examType}
-      onChange={(e) => setExamType(e.target.value)}
-    >
-      <option value="yks">YKS</option>
-      <option value="ales">ALES</option>
-      <option value="kpss">KPSS</option>
-    </select>
-    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">    ▼
-    </span>
-  </div>
-</div>
-    <div>
-      <Label>Açıklama</Label>
-      <textarea
-        className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        rows={3}
-      />
-    </div>
-  </div>
 
-  <div className="mt-4">
-   <button
-  onClick={createExam}
-  className="
-    inline-flex items-center justify-center
-    px-6 py-3
-    rounded-2xl
-    font-bold
-    text-white
-    bg-gradient-to-r from-emerald-500 to-cyan-500
-    hover:brightness-110
-    transition
-    shadow-lg
-  "
->
-  Sınav Oluştur
-</button>
+          <div className="mt-4">
+            <button
+              onClick={createExam}
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-2xl font-semibold text-sm text-white
+                         bg-gradient-to-r from-emerald-500 to-cyan-500 hover:brightness-110 transition shadow-md"
+            >
+              Sınav Oluştur
+            </button>
+          </div>
+        </GlassCard>
 
-  </div>
-</GlassCard>
+        {/* exams list */}
+        <GlassCard title={`Sınavlar (${exams.length})`}>
+          {exams.length === 0 ? (
+            <EmptyState text="Henüz sınav yok." />
+          ) : (
+            <div className="space-y-3">
+              {exams.map((ex) => {
+                const isActive = selectedExam === ex.id;
+                return (
+                  <div
+                    key={ex.id}
+                    className={`rounded-3xl border p-5 transition bg-white/60 ${
+                      isActive
+                        ? "border-emerald-400/40 ring-4 ring-emerald-300/15"
+                        : "border-slate-900/10 hover:bg-white/70"
+                    }`}
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-lg text-slate-900 truncate">{ex.title}</p>
+                        {ex.description && <p className="text-sm text-slate-600 mt-1">{ex.description}</p>}
+                      </div>
 
-          {/* exams list */}
-          <GlassCard
-            title={`Sınavlar (${exams.length})`}
-           
-          >
-            {exams.length === 0 ? (
-              <EmptyState text="Henüz sınav yok." />
-            ) : (
-              <div className="space-y-3">
-                {exams.map((ex) => {
-                  const isActive = selectedExam === ex.id;
-                  return (
-                    <div
-                      key={ex.id}
-                      className={`rounded-3xl border p-5 transition bg-white/60
-                        ${
-                          isActive
-                            ? "border-emerald-400/40 ring-4 ring-emerald-300/15"
-                            : "border-slate-900/10 hover:bg-white/70"
-                        }`}
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="font-extrabold text-lg text-slate-900 truncate">{ex.title}</p>
-                          {ex.description && <p className="text-sm text-slate-600 mt-1">{ex.description}</p>}
-                        </div>
+                      {/* buttons (responsive grid) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto">
+                        <button
+                          onClick={() => selectExam(ex.id)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
+                                     bg-gradient-to-r from-emerald-500 to-cyan-500
+                                     shadow-[0_10px_30px_rgba(6,182,212,0.20)]
+                                     hover:brightness-105 transition"
+                        >
+                          <Edit size={18} />
+                          <span className="whitespace-nowrap">Soru Yönet</span>
+                        </button>
 
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => selectExam(ex.id)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
-                                       bg-gradient-to-r from-emerald-500 to-cyan-500
-                                       shadow-[0_10px_30px_rgba(6,182,212,0.20)]
-                                       hover:brightness-105 transition"
-                          >
-                            <Edit size={18} />
-                            Soru Yönet
-                          </button>
+                        <button
+                          onClick={() => {
+                            setSelectedExamForEdit(ex);
+                            setEditExamTitle(ex.title);
+                            setEditExamDescription(ex.description || "");
+                          }}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-bold text-slate-900
+                                     bg-white/70 border border-slate-900/10 hover:bg-white transition"
+                        >
+                          <Edit size={18} />
+                          <span className="whitespace-nowrap">Sınav Adı</span>
+                        </button>
 
-                          <button
-                            onClick={() => {
-                              setSelectedExamForEdit(ex);
-                              setEditExamTitle(ex.title);
-                              setEditExamDescription(ex.description || "");
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-slate-900
-                                       bg-white/70 border border-slate-900/10 hover:bg-white transition"
-                          >
-                            <Edit size={18} />
-                            Sınav Adı Düzenle
-                          </button>
-
-                          <button
-                            onClick={() => deleteExam(ex.id, ex.title)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
-                                       bg-gradient-to-r from-red-500 to-rose-500
-                                       shadow-[0_10px_30px_rgba(244,63,94,0.20)]
-                                       hover:brightness-105 transition"
-                          >
-                            <Trash2 size={18} />
-                            Sil
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => deleteExam(ex.id, ex.title)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
+                                     bg-gradient-to-r from-red-500 to-rose-500
+                                     shadow-[0_10px_30px_rgba(244,63,94,0.20)]
+                                     hover:brightness-105 transition"
+                        >
+                          <Trash2 size={18} />
+                          <span className="whitespace-nowrap">Sil</span>
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </GlassCard>
-
-          {/* exam edit */}
-          {selectedExamForEdit && (
-            <GlassCard title="Sınavı Düzenle" rightIcon={<Save className="w-5 h-5 text-slate-400" />}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Sınav Başlığı</Label>
-                  <input
-                    className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
-                               focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-300/20 transition"
-                    value={editExamTitle}
-                    onChange={(e) => setEditExamTitle(e.target.value)}
-                    placeholder="Sınav Başlığı"
-                  />
-                </div>
-
-                <div>
-                  <Label>Açıklama</Label>
-                  <textarea
-                    className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
-                               focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20 transition"
-                    rows={3}
-                    value={editExamDescription}
-                    onChange={(e) => setEditExamDescription(e.target.value)}
-                    placeholder="Açıklama"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  onClick={updateExam}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-white
-                             bg-gradient-to-r from-emerald-500 to-cyan-500
-                             shadow-[0_14px_40px_rgba(16,185,129,0.22)]
-                             hover:brightness-105 transition"
-                >
-                  <Save className="w-5 h-5" />
-                  Kaydet
-                </button>
-
-                <button
-                  onClick={() => setSelectedExamForEdit(null)}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-slate-900
-                             bg-white/70 border border-slate-900/10 hover:bg-white transition"
-                >
-                  İptal
-                </button>
-              </div>
-            </GlassCard>
-          )}
-
-          {/* questions area */}
-          {selectedExam && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* existing questions */}
-              <GlassCard
-                title={`Mevcut Sorular (${examQuestions.length})`}
-                rightIcon={
-                  <span className="text-xs text-slate-500 font-semibold">
-                    Seçili sınav: <span className="text-slate-800">{selectedExamObj?.title || "-"}</span>
-                  </span>
-                }
-              >
-                {examQuestions.length === 0 ? (
-                  <EmptyState text="Bu sınavda henüz soru yok." />
-                ) : (
-                  <div className="space-y-3">
-                    {examQuestions.map((q, i) => (
-                      <div
-                        key={q.id}
-                        className="rounded-3xl border border-slate-900/10 bg-white/60 p-5 hover:bg-white/70 transition"
-                      >
-                        <p className="font-extrabold text-slate-900 mb-2">
-                          {i + 1}. {q.question}
-                        </p>
-
-                        {q.image_url && (
-                          <div className="mb-3">
-                            <img
-                              src={q.image_url}
-                              alt="Soru görseli"
-                              className="w-full max-h-48 object-cover rounded-2xl border border-slate-900/10"
-                            />
-                          </div>
-                        )}
-
-                        <div className="text-sm space-y-1 mb-3">
-                          <OptionLine active={q.correct === 0} label="A" text={q.option1} />
-                          <OptionLine active={q.correct === 1} label="B" text={q.option2} />
-                          <OptionLine active={q.correct === 2} label="C" text={q.option3} />
-                          <OptionLine active={q.correct === 3} label="D" text={q.option4} />
-                          <OptionLine active={q.correct === 4} label="E" text={q.option5} />
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => {
-                              setEditMode(true);
-                              setEditQuestionId(q.id);
-                              setQuestion(q.question);
-                              setOption1(q.option1);
-                              setOption2(q.option2);
-                              setOption3(q.option3);
-                              setOption4(q.option4);
-                              setOption5(q.option5);
-                              setCorrect(q.correct);
-                              setShowBulkAdd(false);
-                              setImageFile(null);
-                              setImagePreview(null);
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-slate-900
-                                       bg-white/70 border border-slate-900/10 hover:bg-white transition"
-                          >
-                            <Edit size={16} />
-                            Düzenle
-                          </button>
-
-                          <button
-                            onClick={() => deleteQuestion(q.id)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
-                                       bg-gradient-to-r from-red-500 to-rose-500
-                                       shadow-[0_10px_30px_rgba(244,63,94,0.18)]
-                                       hover:brightness-105 transition"
-                          >
-                            <Trash2 size={16} />
-                            Sil
-                          </button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                )}
-              </GlassCard>
+                );
+              })}
+            </div>
+          )}
+        </GlassCard>
 
-              {/* add/edit question */}
-              <GlassCard title={showBulkAdd ? "Toplu Soru Ekle" : editMode ? "Soruyu Düzenle" : "Tekli Soru Ekle"}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  <button
-                    onClick={() => {
-                      setShowBulkAdd(false);
-                      setEditMode(false);
-                      setEditQuestionId(null);
-                      resetQuestionForm();
-                    }}
-                    className={`px-4 py-3 rounded-2xl font-bold transition border
-                      ${
-                        !showBulkAdd
-                          ? "text-white bg-gradient-to-r from-emerald-500 to-cyan-500 border-transparent shadow-[0_14px_40px_rgba(16,185,129,0.18)]"
-                          : "bg-white/70 border-slate-900/10 text-slate-900 hover:bg-white"
-                      }`}
-                  >
-                    {editMode ? "Düzenleme Modu" : "Tekli Ekle"}
-                  </button>
+        {/* exam edit */}
+        {selectedExamForEdit && (
+          <GlassCard title="Sınavı Düzenle" rightIcon={<Save className="w-5 h-5 text-slate-400" />}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Sınav Başlığı</Label>
+                <input
+                  className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
+                             focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-300/20 transition"
+                  value={editExamTitle}
+                  onChange={(e) => setEditExamTitle(e.target.value)}
+                  placeholder="Sınav Başlığı"
+                />
+              </div>
 
-                  <button
-                    onClick={() => {
-                      setShowBulkAdd(true);
-                      setEditMode(false);
-                      setEditQuestionId(null);
-                      resetQuestionForm();
-                    }}
-                    className={`px-4 py-3 rounded-2xl font-bold transition border inline-flex items-center justify-center gap-2
-                      ${
-                        showBulkAdd
-                          ? "text-white bg-gradient-to-r from-cyan-500 to-sky-500 border-transparent shadow-[0_14px_40px_rgba(6,182,212,0.18)]"
-                          : "bg-white/70 border-slate-900/10 text-slate-900 hover:bg-white"
-                      }`}
-                  >
-                    <ListPlus size={18} />
-                    Toplu Ekle
-                  </button>
+              <div>
+                <Label>Açıklama</Label>
+                <textarea
+                  className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
+                             focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20 transition"
+                  rows={3}
+                  value={editExamDescription}
+                  onChange={(e) => setEditExamDescription(e.target.value)}
+                  placeholder="Açıklama"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={updateExam}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-white
+                           bg-gradient-to-r from-emerald-500 to-cyan-500
+                           shadow-[0_14px_40px_rgba(16,185,129,0.22)]
+                           hover:brightness-105 transition"
+              >
+                <Save className="w-5 h-5" />
+                Kaydet
+              </button>
+
+              <button
+                onClick={() => setSelectedExamForEdit(null)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-slate-900
+                           bg-white/70 border border-slate-900/10 hover:bg-white transition"
+              >
+                İptal
+              </button>
+            </div>
+          </GlassCard>
+        )}
+
+        {/* questions area */}
+        {selectedExam && (
+          <div className="grid grid-cols-1 gap-6">
+            {/* existing questions */}
+            <GlassCard
+              title={`Mevcut Sorular (${examQuestions.length})`}
+              rightIcon={
+                <span className="text-xs text-slate-500 font-semibold">
+                  Seçili sınav: <span className="text-slate-800">{selectedExamObj?.title || "-"}</span>
+                </span>
+              }
+            >
+              {examQuestions.length === 0 ? (
+                <EmptyState text="Bu sınavda henüz soru yok." />
+              ) : (
+                <div className="space-y-3">
+                  {examQuestions.map((q, i) => (
+                    <div
+                      key={q.id}
+                      className="rounded-3xl border border-slate-900/10 bg-white/60 p-5 hover:bg-white/70 transition"
+                    >
+                      <p className="font-extrabold text-slate-900 mb-2">
+                        {i + 1}. {q.question}
+                      </p>
+
+                      {q.image_url && (
+                        <div className="mb-3">
+                          <img
+                            src={q.image_url}
+                            alt="Soru görseli"
+                            className="w-full max-h-48 object-cover rounded-2xl border border-slate-900/10"
+                          />
+                        </div>
+                      )}
+
+                      <div className="text-sm space-y-1 mb-3">
+                        <OptionLine active={q.correct === 0} label="A" text={q.option1} />
+                        <OptionLine active={q.correct === 1} label="B" text={q.option2} />
+                        <OptionLine active={q.correct === 2} label="C" text={q.option3} />
+                        <OptionLine active={q.correct === 3} label="D" text={q.option4} />
+                        <OptionLine active={q.correct === 4} label="E" text={q.option5} />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setEditMode(true);
+                            setEditQuestionId(q.id);
+                            setQuestion(q.question);
+                            setOption1(q.option1);
+                            setOption2(q.option2);
+                            setOption3(q.option3);
+                            setOption4(q.option4);
+                            setOption5(q.option5);
+                            setCorrect(q.correct);
+                            setShowBulkAdd(false);
+                            setImageFile(null);
+                            setImagePreview(null);
+                          }}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-bold text-slate-900
+                                     bg-white/70 border border-slate-900/10 hover:bg-white transition"
+                        >
+                          <Edit size={16} />
+                          <span className="whitespace-nowrap">Düzenle</span>
+                        </button>
+
+                        <button
+                          onClick={() => deleteQuestion(q.id)}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl font-bold text-white
+                                     bg-gradient-to-r from-red-500 to-rose-500
+                                     shadow-[0_10px_30px_rgba(244,63,94,0.18)]
+                                     hover:brightness-105 transition"
+                        >
+                          <Trash2 size={16} />
+                          <span className="whitespace-nowrap">Sil</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+
+            {/* add/edit question */}
+            <GlassCard title={showBulkAdd ? "Toplu Soru Ekle" : editMode ? "Soruyu Düzenle" : "Tekli Soru Ekle"}>
+              {/* max width wrapper */}
+              <div className="mx-auto w-full max-w-4xl">
+                {/* segmented tabs */}
+                <div className="mb-5">
+                  <div className="w-full sm:w-auto sm:max-w-[520px]">
+                    <div className="inline-flex w-full rounded-2xl bg-white/60 border border-slate-900/10 p-1 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowBulkAdd(false);
+                          setEditMode(false);
+                          setEditQuestionId(null);
+                          resetQuestionForm();
+                        }}
+                        className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
+                          ${
+                            !showBulkAdd
+                              ? "text-white bg-gradient-to-r from-emerald-500 to-cyan-500 shadow"
+                              : "text-slate-800 hover:bg-white/70"
+                          }`}
+                      >
+                        Tekli Ekle
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowBulkAdd(true);
+                          setEditMode(false);
+                          setEditQuestionId(null);
+                          resetQuestionForm();
+                        }}
+                        className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition
+                          ${
+                            showBulkAdd
+                              ? "text-white bg-gradient-to-r from-cyan-500 to-sky-500 shadow"
+                              : "text-slate-800 hover:bg-white/70"
+                          }`}
+                      >
+                        <ListPlus size={16} />
+                        Toplu Ekle
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {showBulkAdd ? (
-                  <div>
-                    <div className="mb-4 rounded-3xl border border-slate-900/10 bg-white/60 p-4">
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-slate-900/10 bg-white/60 p-4">
                       <div className="font-extrabold text-slate-900 mb-2">Format</div>
                       <div className="text-sm text-slate-700 space-y-1">
                         <div>Soru metni?</div>
@@ -696,7 +709,7 @@ function AdminExams() {
                     <textarea
                       value={bulkText}
                       onChange={(e) => setBulkText(e.target.value)}
-                      className="w-full h-80 rounded-3xl border border-slate-900/10 bg-white/70 px-4 py-3 font-mono text-sm outline-none
+                      className="w-full h-56 rounded-3xl border border-slate-900/10 bg-white/70 px-4 py-3 font-mono text-sm outline-none
                                  focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20 transition"
                       placeholder={
                         "Soruları buraya yapıştırın...\n\n" +
@@ -709,36 +722,39 @@ function AdminExams() {
                     <button
                       onClick={handleBulkAdd}
                       disabled={bulkLoading || !bulkText.trim()}
-                      className="mt-3 w-full px-6 py-3 rounded-2xl font-extrabold text-white
-                                 bg-gradient-to-r from-cyan-500 to-sky-500
-                                 shadow-[0_14px_40px_rgba(6,182,212,0.18)]
-                                 hover:brightness-105 transition
+                      className="w-full px-5 py-2.5 rounded-2xl font-semibold text-white text-sm
+                                 bg-gradient-to-r from-cyan-500 to-sky-500 shadow-md hover:brightness-105 transition
                                  disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {bulkLoading ? "Ekleniyor..." : "Soruları Ekle"}
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <Label>Soru</Label>
-                    <textarea
-                      className="w-full rounded-3xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none mb-4
-                                 focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-300/20 transition"
-                      placeholder="Soru metni"
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      rows={4}
-                    />
+                  // SINGLE ADD (2-column layout)
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* LEFT: question + image */}
+                    <div>
+                      <Label>Soru</Label>
+                      <textarea
+                        className="w-full rounded-3xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none mb-4
+                                   focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-300/20 transition"
+                        placeholder="Soru metni"
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        rows={5}
+                      />
 
-                    <div className="mb-4">
+                      <div className="mb-1">
+                        <Label>Görsel</Label>
+                      </div>
+
                       {!imagePreview ? (
-                        <label className="flex flex-col items-center justify-center w-full h-36 rounded-3xl cursor-pointer border border-dashed border-slate-900/20 bg-white/60 hover:bg-white/70 transition">
+                        <label className="flex flex-col items-center justify-center w-full h-32 rounded-3xl cursor-pointer border border-dashed border-slate-900/20 bg-white/60 hover:bg-white/70 transition">
                           <div className="flex flex-col items-center justify-center">
-                            <div className="w-12 h-12 rounded-2xl bg-white/70 border border-slate-900/10 flex items-center justify-center mb-2">
-                              <ImageIcon className="w-6 h-6 text-slate-400" />
+                            <div className="w-10 h-10 rounded-2xl bg-white/70 border border-slate-900/10 flex items-center justify-center mb-1">
+                              <ImageIcon className="w-5 h-5 text-slate-400" />
                             </div>
-                            <div className="text-sm text-slate-700 font-semibold">Resim yüklemek için tıkla</div>
-                            <div className="text-xs text-slate-500 mt-1">PNG/JPG</div>
+                            <div className="text-xs text-slate-700 font-semibold">Resim yükle</div>
                           </div>
                           <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                         </label>
@@ -747,7 +763,7 @@ function AdminExams() {
                           <img
                             src={imagePreview}
                             alt="Preview"
-                            className="w-full h-48 object-cover rounded-3xl border border-slate-900/10"
+                            className="w-full h-32 object-cover rounded-3xl border border-slate-900/10"
                           />
                           <button
                             type="button"
@@ -761,88 +777,105 @@ function AdminExams() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 mb-4">
-                      <TextInput placeholder="Şık A" value={option1} onChange={setOption1} />
-                      <TextInput placeholder="Şık B" value={option2} onChange={setOption2} />
-                      <TextInput placeholder="Şık C" value={option3} onChange={setOption3} />
-                      <TextInput placeholder="Şık D" value={option4} onChange={setOption4} />
-                      <TextInput placeholder="Şık E" value={option5} onChange={setOption5} />
+                    {/* RIGHT: options + answer + actions */}
+                    <div>
+                      <Label>Şıklar</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <TextInput placeholder="Şık A" value={option1} onChange={setOption1} />
+                        <TextInput placeholder="Şık B" value={option2} onChange={setOption2} />
+                        <TextInput placeholder="Şık C" value={option3} onChange={setOption3} />
+                        <TextInput placeholder="Şık D" value={option4} onChange={setOption4} />
+                        <div className="sm:col-span-2">
+                          <TextInput placeholder="Şık E" value={option5} onChange={setOption5} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+                        <div>
+                          <Label>Cevap</Label>
+                          <select
+                            className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
+                                       focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20 transition"
+                            value={correct}
+                            onChange={(e) => setCorrect(Number(e.target.value))}
+                          >
+                            <option value={0}>A</option>
+                            <option value={1}>B</option>
+                            <option value={2}>C</option>
+                            <option value={3}>D</option>
+                            <option value={4}>E</option>
+                          </select>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={editMode ? updateQuestion : addQuestion}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm text-white
+                                       bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-md hover:brightness-105 transition
+                                       whitespace-nowrap"
+                          >
+                            {editMode ? <Save size={16} /> : <PlusCircle size={16} />}
+                            {editMode ? "Kaydet" : "Soru Ekle"}
+                          </button>
+
+                          {editMode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditMode(false);
+                                setEditQuestionId(null);
+                                resetQuestionForm();
+                              }}
+                              className="px-6 py-3 rounded-2xl font-semibold text-sm text-slate-900
+                                         bg-white/70 border border-slate-900/10 hover:bg-white transition
+                                         whitespace-nowrap"
+                            >
+                              İptal
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    <Label>Doğru Cevap</Label>
-                    <select
-                      className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none mb-4
-                                 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-300/20 transition"
-                      value={correct}
-                      onChange={(e) => setCorrect(Number(e.target.value))}
-                    >
-                      <option value={0}>A</option>
-                      <option value={1}>B</option>
-                      <option value={2}>C</option>
-                      <option value={3}>D</option>
-                      <option value={4}>E</option>
-                    </select>
-
-                    <button
-                      onClick={editMode ? updateQuestion : addQuestion}
-                      className="w-full px-6 py-3 rounded-2xl font-extrabold text-white
-                                 bg-gradient-to-r from-emerald-500 to-cyan-500
-                                 shadow-[0_14px_40px_rgba(16,185,129,0.18)]
-                                 hover:brightness-105 transition"
-                    >
-                      {editMode ? "Düzenlemeyi Kaydet" : "Soru Ekle"}
-                    </button>
-
-                    {editMode && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditMode(false);
-                          setEditQuestionId(null);
-                          resetQuestionForm();
-                        }}
-                        className="mt-2 w-full px-6 py-3 rounded-2xl font-bold text-slate-900
-                                   bg-white/70 border border-slate-900/10 hover:bg-white transition"
-                      >
-                        Düzenlemeyi İptal Et
-                      </button>
-                    )}
-                  </>
+                  </div>
                 )}
-              </GlassCard>
-            </div>
-          )}
-        </div>
+              </div>
+            </GlassCard>
+          </div>
+        )}
       </main>
     </div>
   );
 }
+
 /* ----------------- UI helpers ----------------- */
 function GlassCard({ title, rightIcon, children }) {
   return (
     <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-6 shadow-sm">
       <div className="flex items-center justify-between gap-4 mb-4">
         <h2 className="text-xl font-extrabold text-slate-900">{title}</h2>
-      
+        {rightIcon}
       </div>
       {children}
     </div>
   );
 }
+
 function Label({ children }) {
   return <div className="text-sm font-semibold text-slate-800 mb-2">{children}</div>;
 }
+
 function TextInput({ placeholder, value, onChange }) {
   return (
     <input
-      className="w-full rounded-2xl border border-slate-900/10 bg-white/70 px-4 py-3 outline-none
-                 focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-300/20 transition"
+      className="w-full rounded-xl border border-slate-900/10 bg-white/70 px-3 py-2 text-sm outline-none
+                 focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-300/20 transition"
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
   );
 }
+
 function OptionLine({ active, label, text }) {
   return (
     <div className={`flex gap-2 ${active ? "text-emerald-700 font-bold" : "text-slate-700"}`}>
@@ -851,6 +884,7 @@ function OptionLine({ active, label, text }) {
     </div>
   );
 }
+
 function EmptyState({ text }) {
   return (
     <div className="text-center py-10">
@@ -861,4 +895,5 @@ function EmptyState({ text }) {
     </div>
   );
 }
+
 export default AdminExams;

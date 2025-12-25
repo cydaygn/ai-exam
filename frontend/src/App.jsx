@@ -4,12 +4,13 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Pricing from "./pages/Pricing";
 
 // Student Pages
 import Dashboard from "./pages/Dashboard";
 import Exams from "./pages/Exams";
 import ExamDetail from "./pages/ExamDetail";
-import ExamResult from "./pages/ExamResult";   
+import ExamResult from "./pages/ExamResult";
 import Performance from "./pages/Performance";
 import AiAssistant from "./pages/AiAssistant";
 import Profile from "./pages/Profile";
@@ -24,11 +25,20 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminStudents from "./pages/AdminStudent";
 import AdminExams from "./pages/AdminExams";
 
+function RequirePlus() {
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const plan = user?.plan || "free";
+
+  if (plan !== "plus") {
+    return <Navigate to="/student/pricing" replace />;
+  }
+  return <Outlet />;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* ADMIN PANEL */}
         <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -62,10 +72,15 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="exams" element={<Exams />} />
           <Route path="exam/:id" element={<ExamDetail />} />
-          <Route path="exam/:id/result" element={<ExamResult />} /> {/* ← BURASI RESULT */}
+          <Route path="exam/:id/result" element={<ExamResult />} />
           <Route path="performance" element={<Performance />} />
-          <Route path="ai" element={<AiAssistant />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="pricing" element={<Pricing />} />
+
+          {/* AI sadece PLUS */}
+          <Route element={<RequirePlus />}>
+            <Route path="ai" element={<AiAssistant />} />
+          </Route>
         </Route>
 
         {/* 404 */}

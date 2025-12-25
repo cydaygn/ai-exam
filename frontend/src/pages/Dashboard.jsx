@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, CheckCircle, Zap, Trophy, Calendar } from "lucide-react";
+import { TrendingUp, CheckCircle, Zap, Trophy, Calendar, Crown, Sparkles, Brain } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -41,7 +41,15 @@ function Dashboard() {
 
     fetch(`${API_URL}/user/${userData.id}`)
       .then((res) => res.json())
-      .then((data) => setStats(data))
+    .then((data) => {
+  setStats(data);
+
+  // plan vb. güncel bilgiyi backend'den al
+  const mergedUser = { ...userData, plan: data.plan || userData.plan || "free" };
+  setUser(mergedUser);
+  localStorage.setItem("user", JSON.stringify(mergedUser));
+})
+
       .catch(() =>
         setStats({
           weekly_scores: [],
@@ -164,7 +172,7 @@ function Dashboard() {
         <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Hero Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -194,8 +202,54 @@ function Dashboard() {
           </div>
         </div>
 
+        {/* 🚀 UPGRADE BANNER - Sadece free kullanıcılara göster */}
+        {(user?.plan || "free") === "free" && (
+          <div className="mb-8 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+            {/* Animated background effect */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-0 -left-4 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-xl animate-pulse" />
+              <div className="absolute bottom-0 -right-4 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-xl animate-pulse" style={{ animationDelay: '2s' }} />
+            </div>
+            
+            <div className="relative z-10 flex items-start justify-between gap-4 flex-col md:flex-row">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown className="w-7 h-7 text-white" />
+                  <h3 className="text-2xl font-extrabold text-white">
+                    AI Destekli Öğrenmeye Geç! 🚀
+                  </h3>
+                </div>
+                <p className="text-white/95 text-sm md:text-base leading-relaxed mb-4">
+                  Yapay zeka ile soru analizi, akıllı öneriler ve kişiselleştirilmiş öğrenme deneyimi seni bekliyor.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI Analiz
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
+                    <Zap className="w-3.5 h-3.5" />
+                    Akıllı Öneriler
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
+                    <Brain className="w-3.5 h-3.5" />
+                    Kişisel Öğrenme
+                  </span>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => navigate("/student/pricing")}
+                className="shrink-0 px-6 py-3 rounded-2xl font-extrabold bg-white text-orange-600 hover:bg-gray-50 hover:scale-105 transition-all shadow-xl"
+              >
+                Planları Gör
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions - Büyük Butonlar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <QuickActionCard
             icon={<Trophy className="w-6 h-6" />}
             title="Başarılarım"
@@ -210,14 +264,14 @@ function Dashboard() {
             desc="Kaldığın yerden"
             gradient="from-orange-500 via-amber-500 to-yellow-500"
             onClick={() => {
-  if (stats?.last_exam_id) navigate(`/student/exam/${stats.last_exam_id}`);
-  else navigate("/student/exams");
-}}
+              if (stats?.last_exam_id) navigate(`/student/exam/${stats.last_exam_id}`);
+              else navigate("/student/exams");
+            }}
           />
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <StatCard
             icon={<TrendingUp className="w-5 h-5" />}
             label="Ortalama Başarı"
@@ -230,11 +284,10 @@ function Dashboard() {
             label="Son Sınav"
             value={stats.last_test_name || "-"}
             gradient="from-purple-500 to-pink-500"
-            small
           />
         </div>
 
-        {/* ✅ Özet Kartı (BURASI YENİ) */}
+        {/* ✅ Özet Kartı */}
         <div className="mt-6 bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -254,9 +307,6 @@ function Dashboard() {
             </button>
           </div>
         </div>
-
-        {/* (İstersen sonra buraya grafiği de geri koyarsın) */}
-        {/* <div className="mt-8 ..."><Line data={chartData} options={chartOptions} /></div> */}
       </div>
     </div>
   );
@@ -300,15 +350,15 @@ function QuickActionCard({ icon, title, desc, gradient, onClick, featured }) {
   );
 }
 
-function StatCard({ icon, label, value, gradient, small }) {
+function StatCard({ icon, label, value, gradient }) {
   return (
-    <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-5 shadow-sm">
+    <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-6 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
             {label}
           </p>
-          <p className={`font-extrabold text-slate-900 ${small ? "text-lg" : "text-3xl"} leading-tight`}>
+          <p className="font-extrabold text-slate-900 text-2xl leading-tight">
             {value}
           </p>
         </div>

@@ -75,12 +75,14 @@ router.post("/login", (req, res) => {
 
       return res.json({
         success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
+      user: {
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  plan: user.plan || "free",
+},
+
         token,
       });
     }

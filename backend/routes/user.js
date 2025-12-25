@@ -156,6 +156,27 @@ router.put("/:id", (req, res) => {
   });
 });
 
+// PUT /api/user/:id/upgrade
+router.put("/:id/upgrade", (req, res) => {
+  const userId = req.params.id;
+  const { plan } = req.body;
+
+  if (!["free", "plus"].includes(plan)) {
+    return res.status(400).json({ success: false, message: "Geçersiz plan" });
+  }
+
+  db.query(
+    "UPDATE users SET plan = ? WHERE id = ?",
+    [plan, userId],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: "Sunucu hatası" });
+      }
+      return res.json({ success: true, plan });
+    }
+  );
+});
+
 /* -------------------------------------------
    KULLANICI DASHBOARD + PROFIL VERISI
    GET /api/user/:id
@@ -170,6 +191,7 @@ router.get("/:id", (req, res) => {
       u.name,
       u.email,
       u.role,
+u.plan,
 
       (SELECT COUNT(DISTINCT exam_name)
        FROM user_tests
@@ -201,10 +223,11 @@ router.get("/:id", (req, res) => {
     WHERE u.id = ?
   `;
 
-  db.query(
-    summaryQuery,
-    [userId, userId, userId, userId, userId, userId],
-    (err, result) => {
+ db.query(
+  summaryQuery,
+  [userId, userId, userId, userId, userId, userId, userId],
+  (err, result) => {
+
       if (err) return res.status(500).json({ error: err });
 
       const summary = result?.[0] || {};

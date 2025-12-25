@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, User, Sparkles, RefreshCw, AlertTriangle } from "lucide-react";
 import axios from "axios";
-import { API_URL } from '../api';
+import ReactMarkdown from "react-markdown";
+import { API_URL } from "../api";
 
 function AiAssistant() {
   const [messages, setMessages] = useState([]);
@@ -54,6 +55,7 @@ function AiAssistant() {
   // Initialize chat
   useEffect(() => {
     if (!isInitialized) initializeChat();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized]);
 
   const loadInitialSuggestions = async () => {
@@ -67,7 +69,6 @@ function AiAssistant() {
       }
     } catch (err) {
       console.error("Öneri yükleme hatası:", err);
-      // Fallback öneriler
       setCurrentSuggestions([
         { id: "1", text: "📊 Son sınavımı analiz et", prompt: "Son sınavımı detaylı analiz et" },
         { id: "2", text: "📚 Hangi konuya çalışmalıyım?", prompt: "Zayıf olduğum konuları belirle" },
@@ -84,7 +85,6 @@ function AiAssistant() {
         const history = JSON.parse(saved);
         setMessages(history);
 
-        // Son AI mesajındaki önerileri yükle
         const lastAi = [...history].reverse().find((m) => m.sender === "ai");
         if (lastAi?.suggestions?.length) {
           setCurrentSuggestions(lastAi.suggestions);
@@ -100,14 +100,14 @@ function AiAssistant() {
       }
     }
 
-    // Yeni sohbet
     setLoading(true);
     try {
       await loadInitialSuggestions();
-      
+
       const welcome = {
         sender: "ai",
-        text: "Merhaba! 👋\n\nSınav hazırlığında sana yardımcı olmak için buradayım. Aşağıdaki baloncuklardan birini seçerek başlayabilirsin:",
+        text:
+          "Merhaba! 👋\n\nSınav hazırlığında sana yardımcı olmak için buradayım. Aşağıdaki baloncuklardan birini seçerek başlayabilirsin:",
         suggestions: [],
       };
       setMessages([welcome]);
@@ -126,25 +126,22 @@ function AiAssistant() {
     setError(null);
     setLoading(true);
 
-    // Kullanıcı mesajını ekle
     const userMessage = { sender: "user", text: suggestion.text };
     setMessages((prev) => [...prev, userMessage]);
 
     try {
       const userId = getUserId();
 
-      // Konuşma geçmişini gönder (AI için context)
       const response = await axios.post(`${API_URL}/ai/chat`, {
         message: suggestion.prompt,
         userId,
-        conversationHistory: messages.slice(-10), // Son 10 mesaj
+        conversationHistory: messages.slice(-10),
       });
 
       if (!response.data?.success) {
         throw new Error(response.data?.error || "Bir hata oluştu");
       }
 
-      // AI yanıtını ekle
       const aiResponse = {
         sender: "ai",
         text: response.data.message,
@@ -153,13 +150,11 @@ function AiAssistant() {
 
       setMessages((prev) => [...prev, aiResponse]);
 
-      // Yeni önerileri güncelle
       if (aiResponse.suggestions.length > 0) {
         setCurrentSuggestions(aiResponse.suggestions);
       } else {
         await loadInitialSuggestions();
       }
-
     } catch (err) {
       const status = err.response?.status;
 
@@ -171,27 +166,22 @@ function AiAssistant() {
 
         setCooldown(retryAfter);
         setError(`⏳ Çok hızlısın! ${retryAfter} saniye bekle.`);
-        
-        // Kullanıcı mesajını geri al (spam önleme)
+
         setMessages((prev) => prev.slice(0, -1));
+        setLoading(false);
         return;
       }
 
-      const msg =
-        err.response?.data?.error ||
-        err.message ||
-        "AI yanıtı alınamadı";
-
+      const msg = err.response?.data?.error || err.message || "AI yanıtı alınamadı";
       setError(msg);
-      
-      // Hata mesajını chat'e ekle
+
       const errorResponse = {
         sender: "ai",
         text: `❌ Üzgünüm, bir hata oluştu: ${msg}\n\nLütfen tekrar dene veya başka bir seçenek dene.`,
         suggestions: [],
       };
       setMessages((prev) => [...prev, errorResponse]);
-      
+
       await loadInitialSuggestions();
     } finally {
       setLoading(false);
@@ -199,7 +189,9 @@ function AiAssistant() {
   };
 
   const handleClearChat = async () => {
-    const confirm = window.confirm("Konuşma geçmişini temizlemek istediğine emin misin?\n\nBu işlem geri alınamaz.");
+    const confirm = window.confirm(
+      "Konuşma geçmişini temizlemek istediğine emin misin?\n\nBu işlem geri alınamaz."
+    );
     if (!confirm) return;
 
     setMessages([]);
@@ -208,8 +200,7 @@ function AiAssistant() {
     setCooldown(0);
     setError(null);
     localStorage.removeItem(getChatKey());
-    
-    // Yeniden başlat
+
     await initializeChat();
   };
 
@@ -222,10 +213,9 @@ function AiAssistant() {
     </div>
   );
 
-  // Loading state
   if (!isInitialized) {
     return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative">
+      <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative antialiased">
         <PageBackground />
         <div className="relative z-10 min-h-screen grid place-items-center px-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-900/10 bg-white/65 backdrop-blur-xl shadow-sm p-6">
@@ -245,12 +235,12 @@ function AiAssistant() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative">
+    <div className="w-full h-screen overflow-hidden bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative antialiased">
       <PageBackground />
 
       <div className="relative z-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
-          {/* HEADER */}
+        {/* HEADER */}
+        <div className="mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-center justify-between gap-3 bg-white/65 backdrop-blur-xl rounded-2xl px-4 sm:px-6 py-4 shadow-sm border border-slate-900/10">
             <div className="min-w-0 flex items-center gap-3">
               <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white flex items-center justify-center shadow-sm">
@@ -297,10 +287,7 @@ function AiAssistant() {
           <div className="mt-4 rounded-2xl border border-slate-900/10 bg-white/65 backdrop-blur-xl shadow-sm overflow-hidden">
             <div className="h-[72vh] sm:h-[78vh] flex flex-col">
               {/* MESSAGES AREA */}
-              <div
-                ref={chatScrollRef}
-                className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5"
-              >
+              <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5">
                 {messages.length === 0 ? (
                   <div className="h-full grid place-items-center text-center">
                     <div className="max-w-sm">
@@ -308,25 +295,21 @@ function AiAssistant() {
                         <Bot size={26} />
                       </div>
                       <p className="font-extrabold text-slate-900 text-lg">Baloncuklardan birini seç</p>
-                      <p className="text-sm text-slate-700 mt-2">
-                        Yazı yazmana gerek yok, baloncuklarla akış ilerler 🎈
-                      </p>
+                      <p className="text-sm text-slate-700 mt-2">Yazı yazmana gerek yok, baloncuklarla akış ilerler 🎈</p>
                     </div>
                   </div>
                 ) : (
                   messages.map((msg, i) => {
                     const isUser = msg.sender === "user";
                     return (
-                      <div
-                        key={i}
-                        className={`flex items-end gap-3 ${isUser ? "justify-end" : "justify-start"}`}
-                      >
+                      <div key={i} className={`flex items-end gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
                         {!isUser && (
                           <div className="h-9 w-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
                             <Bot size={16} />
                           </div>
                         )}
 
+                        {/* MESSAGE BUBBLE (Sadece AI için markdown + daha iyi tipografi) */}
                         <div
                           className={[
                             "px-4 py-3 text-sm leading-relaxed shadow-sm rounded-2xl",
@@ -334,10 +317,16 @@ function AiAssistant() {
                               ? "bg-slate-900 text-white"
                               : "bg-white/70 text-slate-800 border border-slate-900/10",
                             "max-w-[78%] sm:max-w-[70%]",
-                          ].join(" ")}
-                          style={{ whiteSpace: "pre-wrap" }}
+                            !isUser && "prose prose-slate prose-sm max-w-none",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                         >
-                          {msg.text}
+                          {isUser ? (
+                            <span style={{ whiteSpace: "pre-wrap" }}>{msg.text}</span>
+                          ) : (
+                            <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          )}
                         </div>
 
                         {isUser && (
@@ -377,15 +366,13 @@ function AiAssistant() {
                     </span>
                     DEVAM SEÇENEKLERİ
                   </div>
-                  
+
                   {cooldown > 0 ? (
                     <div className="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                       ⏳ {cooldown}s
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-600">
-                      Tıklayarak ilerle
-                    </div>
+                    <div className="text-xs text-slate-600">Tıklayarak ilerle</div>
                   )}
                 </div>
 
