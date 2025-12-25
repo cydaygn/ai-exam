@@ -3,7 +3,7 @@
 Yapay zekâ destekli, kişiselleştirilmiş sınav ve öğrenme platformu.
 
 ## Özellikler  
-- Yapay zekâ ile otomatik soru üretimi (Gemini API)  
+- Yapay zekâ ile otomatik soru üretimi (Groq API)  
 - Açıklamalı geri bildirim ve performans analizi  
 - Gerçek zamanlı sınav sonuçları  
 - JWT tabanlı güvenli kimlik doğrulama  
@@ -33,9 +33,9 @@ ai-exam/
 │
 ├── .gitignore
 └── README.md
+````
 
-
-## Teknolojiler  
+## Teknolojiler
 
 ### Frontend  
 - React  
@@ -48,7 +48,7 @@ ai-exam/
 - Express.js  
 - MySQL  
 - JWT Authentication  
-- Gemini API (değerlendirme)
+- Groq API (değerlendirme)
 
 ### Dağıtım  
 - Frontend: Vercel  
@@ -56,21 +56,27 @@ ai-exam/
 
 ## Proje Amacı  
 Bu proje,
-yapay zekâ destekli eğitim sistemleri,
-öğrenci performans analizi
-ve modern full-stack web geliştirme konularını bir araya getiren bir uygulamadır.
+yapay zekâ destekli eğitim sistemleri, öğrenci performans analizi ve modern full-stack web geliştirme konularını bir araya getiren bir uygulamadır.
 
 ## Kurulum
-1- Repoyu klonla
+### 1- Repoyu klonla
+
 git clone https://github.com/cydaygn/ai-exam.git
+
 cd ai-exam
 
-2️- Backend’i çalıştır
+### 2️- Backend’i çalıştır
+
 cd backend
+
 npm install
+
 npm run dev
 
-3️- Frontend’i çalıştır
+### 3️- Frontend’i çalıştır
+
 cd frontend
+
 npm install
+
 npm run dev
