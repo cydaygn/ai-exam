@@ -1,6 +1,5 @@
 
-# AI-Exam  
-Yapay zekâ destekli, kişiselleştirilmiş sınav ve öğrenme platformu.
+# AI Exam — Yapay Zeka Destekli Sınav Hazırlık ve Analiz Uygulaması
 
 ## Özellikler  
 - Yapay zekâ ile otomatik soru üretimi (Groq API)  
