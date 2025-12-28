@@ -54,6 +54,15 @@ ai-exam/
 - Frontend: Vercel  
 - Backend: Railway
 
+#### Giriş Sayfası
+<img width="1208" height="628" alt="image" src="https://github.com/user-attachments/assets/40ace694-3488-45e6-a70d-df43b1863c9f" />
+
+#### AI  Assistant
+<img width="960" height="811" alt="image" src="https://github.com/user-attachments/assets/83917a3d-c543-4ad5-887b-92b1fbd5b0d7" />
+
+#### Performans Analizi
+<img width="992" height="550" alt="image" src="https://github.com/user-attachments/assets/2c985904-26c3-4059-8683-e916ab44477e" />
+
 ## Proje Amacı  
 Bu proje,
 yapay zekâ destekli eğitim sistemleri, öğrenci performans analizi ve modern full-stack web geliştirme konularını bir araya getiren bir uygulamadır.
