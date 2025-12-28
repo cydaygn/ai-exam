@@ -55,13 +55,25 @@ ai-exam/
 - Backend: Railway
 
 #### Giriş Sayfası
-<img width="1208" height="628" alt="image" src="https://github.com/user-attachments/assets/40ace694-3488-45e6-a70d-df43b1863c9f" />
+<img width="600" height="628" alt="image" src="https://github.com/user-attachments/assets/40ace694-3488-45e6-a70d-df43b1863c9f" />
 
 #### AI  Assistant
-<img width="960" height="811" alt="image" src="https://github.com/user-attachments/assets/83917a3d-c543-4ad5-887b-92b1fbd5b0d7" />
+Öğrencilerin sınav sürecinde rehberlik almasını sağlar:
+- Son sınavların analiz edilmesi  
+- Hangi konuya çalışılması gerektiğine dair öneriler  
+- Kişiye özel çalışma planları
+- 
+<img width="600" height="811" alt="image" src="https://github.com/user-attachments/assets/83917a3d-c543-4ad5-887b-92b1fbd5b0d7" />
 
 #### Performans Analizi
-<img width="992" height="550" alt="image" src="https://github.com/user-attachments/assets/2c985904-26c3-4059-8683-e916ab44477e" />
+
+Bu panel, öğrencinin gelişimini görsel olarak takip etmeyi sağlar:
+- Haftalık başarı trendleri  
+- Tamamlanan deneme sayıları  
+- Günlük hedef takibi  
+- Grafikler ile detaylı analiz
+- 
+<img width="600" height="550" alt="image" src="https://github.com/user-attachments/assets/2c985904-26c3-4059-8683-e916ab44477e" />
 
 ## Proje Amacı  
 Bu proje,
