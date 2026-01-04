@@ -54,7 +54,8 @@ ai-exam/
 - Backend: Railway
 
 #### Giriş Sayfası
-<img width="600" height="628" alt="image" src="https://github.com/user-attachments/assets/40ace694-3488-45e6-a70d-df43b1863c9f" />
+<img width="1143" height="593" alt="image" src="https://github.com/user-attachments/assets/0641a587-da33-435b-a500-b01a4a941cdf" />
+
 
 #### AI  Assistant
 Öğrencilerin sınav sürecinde rehberlik almasını sağlar:
