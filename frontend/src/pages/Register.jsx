@@ -104,13 +104,13 @@ function Register() {
     } catch (err) {
       const status = err?.response?.status;
 
-      // bazı durumlarda backend 500 dönse bile kayıt DB’ye yazılmış olabiliyor -> login dene
+      
       if (status >= 500 || !status) {
         try {
           await tryLogin(1);
           return;
         } catch {
-          // devam
+      
         }
       }
 

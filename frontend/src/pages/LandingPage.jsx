@@ -14,7 +14,7 @@ function LandingPage() {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
-      {/* Arka plan soft glow + hafif grid */}
+
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
         <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
@@ -66,8 +66,7 @@ function LandingPage() {
       <section className="relative z-10 flex flex-col items-center text-center px-6 md:px-10 lg:px-16 py-20 md:py-24">
         <div className="max-w-5xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-900/10 bg-white/60 px-4 py-2 text-sm text-slate-700 mb-6">
-            <Sparkles className="w-4 h-4 text-emerald-600" />
-            Yapay zeka destekli sınav koçluğu
+          
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">

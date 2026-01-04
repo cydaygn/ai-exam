@@ -10,20 +10,20 @@ function Exams() {
   const examType = params.get("type");
 
   function getExamStyle(type) {
-    // LandingPage paleti: slate + emerald + cyan + sky + amber
+   
     switch (type) {
       case "yks":
         return {
           emoji: "📘",
           badgeText: "YKS",
           badgeIcon: <TrendingUp className="w-4 h-4 text-cyan-600" />,
-          // kart cam görünümü + hafif renk tonu
+        
           card:
             "bg-white/65 backdrop-blur-xl border border-slate-900/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition",
-          // başlık rengi (gradient)
+          
           title:
             "bg-gradient-to-r from-cyan-600 to-sky-600 bg-clip-text text-transparent",
-          // buton gradient
+         
           button:
          "bg-gradient-to-r from-indigo-700 to-sky-400 shadow-[0_14px_40px_rgba(67,56,202,0.28)]"
 
@@ -75,12 +75,12 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
       .catch((err) => console.error("Exams fetch error:", err));
   }, [examType]);
 
-  // aktif filtreye göre üst kısım stil
+
   const activeStyle = getExamStyle(examType || "all");
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-cyan-50 to-emerald-50 font-sans text-slate-900 relative overflow-hidden">
-      {/* Arka plan soft glow + hafif grid (Landing ile aynı) */}
+   
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 -left-40 w-[520px] h-[520px] bg-cyan-200/45 rounded-full blur-3xl" />
         <div className="absolute top-10 right-[-180px] w-[560px] h-[560px] bg-emerald-200/45 rounded-full blur-3xl" />
@@ -88,7 +88,7 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
         <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle_at_1px_1px,rgba(15,23,42,.18)_1px,transparent_0)] [background-size:26px_26px]" />
       </div>
 
-      {/* Üst başlık alanı */}
+     
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pt-10 pb-6">
         <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">
           <span className={activeStyle.title}>
@@ -101,7 +101,7 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
         </p>
       </div>
 
-      {/* Filtre butonları */}
+     
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pb-8">
         <div className="flex flex-wrap gap-3">
             <FilterPill to="/student/exams?type=yks" active={examType === "yks"}>
@@ -122,7 +122,7 @@ if (examType) url = `${API_URL}/exams/type/${examType}`; fetch(url)
           </div>
       </div>
 
-      {/* Kartlar */}
+
       <div className="relative z-10 px-6 md:px-10 lg:px-16 pb-14">
           {exams.length === 0 ? (
             <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl p-10 text-center shadow-sm">

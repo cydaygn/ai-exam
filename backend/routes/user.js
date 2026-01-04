@@ -1,4 +1,4 @@
-// backend/routes/user.js
+
 import express from "express";
 import db from "../db.js";
 
@@ -6,7 +6,7 @@ const router = express.Router();
 
 /* -------------------------------------------
    TEST GEÇMİŞİ
-   GET /api/user/tests/:id
+   
 --------------------------------------------*/
 router.get("/tests/:id", (req, res) => {
   const userId = req.params.id;
@@ -33,7 +33,7 @@ router.get("/tests/:id", (req, res) => {
 
 /* -------------------------------------------
    TEST KAYDET
-   POST /api/user/save-test
+  
 --------------------------------------------*/
 router.post("/save-test", (req, res) => {
   const { userId, examId, examName, score, correct, total } = req.body;
@@ -56,7 +56,7 @@ router.post("/save-test", (req, res) => {
 
 /* -------------------------------------------
    PERFORMANS SAYFASI
-   GET /api/user/performance/:id
+   
 --------------------------------------------*/
 router.get("/performance/:id", (req, res) => {
   const userId = req.params.id;
@@ -118,7 +118,7 @@ router.get("/performance/:id", (req, res) => {
 
 /* -------------------------------------------
    PROFİL GÜNCELLEME
-   PUT /api/user/:id
+   
 --------------------------------------------*/
 router.put("/:id", (req, res) => {
   const userId = req.params.id;
@@ -156,7 +156,7 @@ router.put("/:id", (req, res) => {
   });
 });
 
-// PUT /api/user/:id/upgrade
+
 router.put("/:id/upgrade", (req, res) => {
   const userId = req.params.id;
   const { plan } = req.body;
@@ -179,8 +179,7 @@ router.put("/:id/upgrade", (req, res) => {
 
 /* -------------------------------------------
    KULLANICI DASHBOARD + PROFIL VERISI
-   GET /api/user/:id
-   (EN SONDA OLMALI!)
+   
 --------------------------------------------*/
 router.get("/:id", (req, res) => {
   const userId = req.params.id;

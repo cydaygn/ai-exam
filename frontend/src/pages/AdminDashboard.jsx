@@ -1,5 +1,3 @@
-// AdminDashboard.jsx (AdminLayout ile UYUMLU - TAM DOSYA)
-// ÖNEMLİ: Bu dosyada artık background/nav yok. Onlar AdminLayout'ta.
 
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -31,7 +29,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   const fetchDashboardStats = async () => {

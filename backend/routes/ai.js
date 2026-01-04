@@ -79,12 +79,12 @@ function getInitialSuggestions() {
   ];
 }
 
-// AI yanıtına göre akıllı baloncuklar üret
+
 function generateContextualSuggestions(lastUserPrompt, aiResponse) {
   const prompt = lastUserPrompt.toLowerCase();
   const response = aiResponse.toLowerCase();
   
-  // SENARYO 1: Analiz istediyse
+ 
   if (prompt.includes("analiz")) {
     return [
       { 
@@ -109,7 +109,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
     ];
   }
   
-  // SENARYO 2: Plan oluşturulduysa
+  
   if (prompt.includes("plan") && response.includes("gün")) {
     return [
       { 
@@ -170,7 +170,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
 }
 
   
-  // SENARYO 4: Motivasyon ve strateji
+  
   if (prompt.includes("motivasyon") || prompt.includes("strateji")) {
     return [
       { 
@@ -201,7 +201,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
     ];
   }
   
-  // SENARYO 5: Detay istiyorsa
+ 
   if (response.includes("detay") || prompt.includes("detay") || prompt.includes("açıkla")) {
     return [
       { 
@@ -226,7 +226,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
     ];
   }
   
-  // SENARYO 6: Plan takibi
+ 
   if (prompt.includes("takip") || prompt.includes("kontrol")) {
     return [
       { 
@@ -251,7 +251,7 @@ function generateContextualSuggestions(lastUserPrompt, aiResponse) {
     ];
   }
   
-  // DEFAULT: Genel devam seçenekleri
+  
   return [
     { 
       id: "tell_more", 
@@ -317,7 +317,7 @@ async function askAI(prompt, conversationHistory = []) {
   }
 
   try {
-    // Konuşma geçmişini dahil et (son 6 mesaj)
+    
     const messages = [
       { 
         role: "system", 
@@ -383,7 +383,7 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ success: false, error: "Mesaj boş olamaz" });
     }
 
-    // Rate limiting kontrol
+    
     const rateCheck = checkRateLimit(userId);
     if (!rateCheck.allowed) {
       return res.status(429).json({ 
@@ -393,7 +393,7 @@ router.post("/chat", async (req, res) => {
       });
     }
 
-    // Kullanıcı bağlamını al
+
     let ctx = null;
     let contextText = "";
     if (userId) {
@@ -411,7 +411,7 @@ ${ctx.lastTest ? `- Son Test: ${ctx.lastTest.exam_name} (%${ctx.lastTest.score})
       }
     }
 
-    // AI'ya gönderilecek tam prompt
+   
     const fullPrompt = `${contextText}
 
 Kullanıcı İsteği: ${message}`;
@@ -426,7 +426,7 @@ Kullanıcı İsteği: ${message}`;
       });
     }
 
-    // Yanıta göre akıllı baloncuklar üret
+  
     const smartSuggestions = generateContextualSuggestions(message, result.text);
 
     return res.json({

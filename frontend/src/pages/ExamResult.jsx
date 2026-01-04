@@ -8,7 +8,7 @@ function ExamResult() {
   const navigate = useNavigate();
   const { state } = useLocation();
 
-  // state yoksa sınav listesine dön
+
   useEffect(() => {
     if (!state?.questions || !state?.answers) {
       navigate("/student/exams", { replace: true });
@@ -48,7 +48,7 @@ function ExamResult() {
     return { total, correct, wrong, empty, score };
   }, [questions, answers]);
 
-  // ✅ DB'ye kaydet (sadece 1 kere)
+
   const savedRef = useRef(false);
   useEffect(() => {
     if (savedRef.current) return;

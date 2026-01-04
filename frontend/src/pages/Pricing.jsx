@@ -20,7 +20,7 @@ function Pricing() {
   const [payOpen, setPayOpen] = useState(false);
   const [user, setUser] = useState(null);
 
-  // kart formu
+
   const [card, setCard] = useState({
     name: "",
     number: "",
@@ -28,7 +28,7 @@ function Pricing() {
     cvc: "",
   });
 
-  // hata mesajları (kırmızı border + yazı)
+
   const [fieldErr, setFieldErr] = useState({
     name: "",
     number: "",
@@ -36,7 +36,6 @@ function Pricing() {
     cvc: "",
   });
 
-  // kullanıcı inputa dokunmadan hata gösterme
   const [touched, setTouched] = useState({
     name: false,
     number: false,
@@ -56,23 +55,23 @@ function Pricing() {
   const plan = user?.plan || "free";
   const isPlus = plan === "plus";
 
-  // ---------- helpers ----------
+  
   const digitsOnly = (v) => String(v || "").replace(/\D/g, "");
 
-  // 16 rakam max, ekranda 19 karakter (boşluklarla)
+
   const formatCardNumber = (value) => {
     const digits = digitsOnly(value).slice(0, 16);
     return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
   };
 
-  // MMYY -> MM/YY (kullanıcı / koymaz)
+
   const formatExp = (value) => {
     const digits = digitsOnly(value).slice(0, 4);
     if (digits.length <= 2) return digits;
     return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   };
 
-  // CVC sadece 3 rakam
+
   const formatCvc = (value) => digitsOnly(value).slice(0, 3);
 
   const validateFields = (nextCard) => {
@@ -83,13 +82,12 @@ function Pricing() {
 
     const errs = { name: "", number: "", exp: "", cvc: "" };
 
-    // İsim: kullanıcı bir şey yazdıysa validasyon yap
+  
     if (!name) errs.name = "Kart üzerindeki isim zorunlu.";
 
-    // Kart no: 16 rakam
+
     if (numberDigits.length !== 16) errs.number = "Kart numarası 16 haneli olmalı.";
 
-    // SKT: MM/YY ve geçmiş olamaz
     if (!/^\d{2}\/\d{2}$/.test(exp)) {
       errs.exp = "SKT formatı AA/YY olmalı (örn: 12/29).";
     } else {
@@ -110,14 +108,14 @@ function Pricing() {
       }
     }
 
-    // CVC: 3 rakam
+  
     if (cvcDigits.length !== 3) errs.cvc = "CVC 3 haneli olmalı.";
 
     const ok = !errs.name && !errs.number && !errs.exp && !errs.cvc;
     return { ok, errs };
   };
 
-  // yalnızca dokunulan alanda hata göster (ilk açılışta boş)
+
   const liveValidateForUI = (nextCard, nextTouched = touched) => {
     const { errs } = validateFields(nextCard);
     setFieldErr({
@@ -136,7 +134,7 @@ function Pricing() {
 
   const canPay = useMemo(() => validateFields(card).ok, [card]);
 
-  // ---------- handlers ----------
+ 
   const handleNameChange = (e) => {
     const next = { ...card, name: e.target.value };
     setCard(next);
@@ -165,11 +163,11 @@ function Pricing() {
     setPayOpen(true);
     setLoading(false);
 
-    // modal açılınca hiç hata gösterme
+  
     setTouched({ name: false, number: false, exp: false, cvc: false });
     setFieldErr({ name: "", number: "", exp: "", cvc: "" });
 
-    // istersen burada kartı resetle:
+
     setCard({ name: "", number: "", exp: "", cvc: "" });
   };
 
@@ -180,8 +178,6 @@ function Pricing() {
 
   const handleUpgrade = async () => {
     if (!user) return;
-
-    // Onayla'ya basınca tüm alanları touched yap ve hataları göster
     const allTouched = { name: true, number: true, exp: true, cvc: true };
     setTouched(allTouched);
 

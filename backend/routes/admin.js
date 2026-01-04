@@ -101,7 +101,7 @@ router.post("/exam/:id/question", upload.single("image"), (req, res) => {
 });
 
 // ---------------------------------------------
-// TOPLU SORU EKLE (GELİŞTİRİLMİŞ)
+// TOPLU SORU EKLE 
 // ---------------------------------------------
 router.post("/exam/:id/bulk-questions", (req, res) => {
   const examId = req.params.id;
@@ -240,7 +240,7 @@ router.put("/exam/:id", (req, res) => {
 });
 
 // ---------------------------------------------
-// SORU GETİR (SINAVA AİT)
+// SORU GETİR 
 // ---------------------------------------------
 router.get("/exam/:id/questions", (req, res) => {
   db.query(
@@ -338,12 +338,12 @@ router.get("/dashboard/stats", (req, res) => {
         return res.status(500).json({ success: false });
       }
 
-      // sayı dönen sorgular
+ 
       if (key.startsWith("total") || key === "averageScore") {
         const row = result[0];
-        stats[key] = row.total ?? row.avg; // sadece sayı
+        stats[key] = row.total ?? row.avg; 
       }
-      // liste dönen sorgular
+     
       else {
         stats[key] = result;
       }
@@ -362,14 +362,14 @@ router.get("/dashboard/stats", (req, res) => {
 router.delete("/student/:id", (req, res) => {
   const studentId = req.params.id;
 
-  // Önce test sonuçlarını sil
+
   db.query("DELETE FROM user_tests WHERE user_id = ?", [studentId], (err1) => {
     if (err1) {
       console.error("Test sonuçları silinirken hata:", err1);
       return res.status(500).json({ success: false, error: err1.message });
     }
 
-    // Sonra öğrenciyi sil
+   
     db.query("DELETE FROM users WHERE id = ?", [studentId], (err2, result) => {
       if (err2) {
         console.error("Öğrenci silinirken hata:", err2);

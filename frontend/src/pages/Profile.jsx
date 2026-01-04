@@ -242,7 +242,7 @@ const roleTr = (role) => {
                    text={roleTr(profileData.role)}/>
 
                     </div>
-                    {/* === PLAN TASARIMI (GÜZEL) === */}
+                   
                     <div className="mt-5">
                       <div
                         className={[
@@ -322,7 +322,6 @@ const roleTr = (role) => {
                     {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
                   </div>
 
-                  {/* İsim düzenleme butonları */}
                   <div className="flex items-center gap-2">
                     {!editMode ? (
                       <button
@@ -365,7 +364,7 @@ const roleTr = (role) => {
             </div>
           </div>
 
-          {/* Son Aktiviteler */}
+       
           <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl shadow-sm p-6 md:p-7 mb-10">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl md:text-2xl font-extrabold">Son Aktiviteler</h2>

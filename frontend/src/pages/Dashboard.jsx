@@ -44,7 +44,7 @@ function Dashboard() {
     .then((data) => {
   setStats(data);
 
-  // plan vb. güncel bilgiyi backend'den al
+
   const mergedUser = { ...userData, plan: data.plan || userData.plan || "free" };
   setUser(mergedUser);
   localStorage.setItem("user", JSON.stringify(mergedUser));
@@ -186,7 +186,6 @@ function Dashboard() {
               </p>
             </div>
 
-            {/* Bugünün Tarihi */}
             <div className="bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-2xl px-5 py-3 shadow-sm">
               <div className="flex items-center gap-2 text-slate-700">
                 <Calendar size={18} />
@@ -202,7 +201,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* 🚀 UPGRADE BANNER - Sadece free kullanıcılara göster */}
+      
         {(user?.plan || "free") === "free" && (
           <div className="mb-8 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
             {/* Animated background effect */}
@@ -248,7 +247,7 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Quick Actions - Büyük Butonlar */}
+      
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <QuickActionCard
             icon={<Trophy className="w-6 h-6" />}
@@ -287,7 +286,7 @@ function Dashboard() {
           />
         </div>
 
-        {/* ✅ Özet Kartı */}
+        
         <div className="mt-6 bg-white/65 backdrop-blur-xl border border-slate-900/10 rounded-3xl p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">

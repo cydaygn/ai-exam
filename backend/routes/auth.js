@@ -5,11 +5,11 @@ import db from "../db.js";
 
 const router = express.Router();
 
-// helper
+
 const normalizeEmail = (v) => String(v || "").trim().toLowerCase();
 const normalizeName = (v) => String(v || "").trim();
 
-// Kayıt (Register)
+
 router.post("/register", async (req, res) => {
   try {
     const name = normalizeName(req.body.name);
@@ -38,7 +38,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Giriş (Login)
+
 router.post("/login", (req, res) => {
   const email = normalizeEmail(req.body.email);
   const password = String(req.body.password || "");
@@ -47,7 +47,6 @@ router.post("/login", (req, res) => {
     return res.status(400).json({ success: false, message: "Eksik bilgi" });
   }
 
-  // ✅ TRIM + LOWER ile eşleştir
   db.query(
     "SELECT * FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
     [email],
@@ -70,7 +69,7 @@ router.post("/login", (req, res) => {
       const token = jwt.sign(
         { id: user.id },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" } // opsiyonel
+        { expiresIn: "7d" } 
       );
 
       return res.json({
